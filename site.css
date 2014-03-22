@@ -1,0 +1,177 @@
+@import url(http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,400,300,700,600);
+* {
+  box-sizing: border-box;
+}
+body {
+  font-weight: 300;
+  padding-bottom: 100px;
+  background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgi…gd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmFkKSIgLz48L3N2Zz4="), url("./bgnoise_lg_dark.png");
+  background-color: rgba(74, 121, 147, 0.89);
+  background: radial-gradient(farthest-side ellipse at 10% 0, rgba(74, 121, 147, 0.89), rgba(204, 204, 204, 0.85) 60%, rgba(185, 135, 131, 0.87) 120%), url("./bgnoise_lg_dark.png");
+  background: -webkit-radial-gradient(10% 0, farthest-side ellipse, rgba(74, 121, 147, 0.89), rgba(204, 204, 204, 0.85) 60%, rgba(185, 135, 131, 0.87) 120%), url("./bgnoise_lg_dark.png");
+  background: -moz-radial-gradient(10% 0, farthest-side ellipse, rgba(74, 121, 147, 0.89), rgba(204, 204, 204, 0.85) 60%, rgba(185, 135, 131, 0.87) 120%), url("./bgnoise_lg_dark.png");
+  -webkit-backface-visibility: hidden;
+  font-family: "Open Sans", sans-serif;
+  font-size: 13px;
+  line-height: 20px;
+  color: #f8f8f8;
+  background-color: #fff;
+  margin: 0;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 300;
+  color: #fff;
+  text-transform: none;
+  margin: 10px 0;
+  line-height: 20px;
+  font-family: inherit;
+}
+a {
+  color: inherit;
+}
+h4 {
+  font-size: 16.25px;
+}
+ul,
+ol {
+  list-style: none;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0;
+}
+.logo {
+  -webkit-box-sizing: content-box;
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+  position: absolute;
+  left: 65px;
+  top: 13px;
+  z-index: 1;
+}
+.sidebar {
+  -webkit-border-radius: 1px;
+  -moz-border-radius: 1px;
+  -ms-border-radius: 1px;
+  -o-border-radius: 1px;
+  border-radius: 1px;
+  background: rgba(51, 51, 51, 0.4);
+  position: absolute;
+  width: 160px;
+  padding: 10px 0;
+  top: 0;
+  color: #d2d2d2;
+  font-size: 12px;
+  z-index: 1;
+  margin: 80px 0 0 25px;
+}
+@media (min-width: 768px) {
+  .nav-collapse.collapse {
+    height: auto !important;
+    overflow: visible !important;
+    display: block;
+  }
+}
+.side-nav {
+  margin: 0;
+}
+.side-nav > li.active > a {
+  border-left: 4px solid #fff;
+  padding-left: 16px;
+  background: rgba(51, 51, 51, 0.25);
+  color: #f8f8f8;
+}
+.side-nav li a {
+  color: inherit;
+  -webkit-transition: background-color 0.2s;
+  -moz-transition: background-color 0.2s;
+  -o-transition: background-color 0.2s;
+  transition: background-color 0.2s;
+  text-decoration: none;
+  display: block;
+  padding: 8px 20px;
+}
+.side-nav li a.accordion-toggle:not(.collapsed) + .panel-collapse li a:hover {
+  background: rgba(13, 13, 13, 0.25);
+}
+.side-nav .panel-collapse li a:hover,
+.side-nav .panel-collapse li a:focus {
+  background: rgba(51, 51, 51, 0.25);
+}
+.side-nav .panel {
+  margin: 0;
+  border: none;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  -ms-border-radius: 0;
+  -o-border-radius: 0;
+  border-radius: 0;
+  background: none;
+}
+.side-nav .panel-collapse li a {
+  padding: 4px 10px;
+  padding-left: 40px;
+}
+.wrap {
+  margin-left: 185px;
+}
+header.page-header {
+  border: none;
+  margin: 15px 2.5641% 0;
+  padding: 0;
+  position: relative;
+  -webkit-border-radius: 1px;
+  -moz-border-radius: 1px;
+  -ms-border-radius: 1px;
+  -o-border-radius: 1px;
+  border-radius: 1px;
+}
+header.page-header .navbar {
+  min-height: 40px;
+  border: none;
+}
+.navbar {
+  margin: 0;
+}
+@media (min-width: 768px) {
+  .navbar {
+    border-radius: 1px;
+  }
+}
+.navbar {
+  position: relative;
+  min-height: 50px;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+}
+header.page-header .navbar-nav {
+  margin: 0;
+}
+.visible-phone-landscape {
+  display: none !important;
+}
+@media (max-width: 480px) {
+  .visible-phone-landscape {
+    display: block !important;
+  }
+}
+.page-header .navbar .pull-right > li > .dropdown-menu,
+.page-header .navbar .nav > li > .dropdown-menu.pull-right {
+  left: auto;
+  right: 0;
+}
+.navbar-nav > li > .dropdown-menu {
+  margin-top: 0;
+  border-top-right-radius: 0;
+  border-top-left-radius: 0;
+}
+@media (min-width: 768px) {
+  .navbar-right .dropdown-menu {
+    right: 0;
+    left: auto;
+  }
+}
