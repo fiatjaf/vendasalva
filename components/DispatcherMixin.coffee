@@ -1,4 +1,4 @@
-define ->
+define ['react'], (React) ->
   propTypes:
     dispatcher: React.PropTypes.object
 

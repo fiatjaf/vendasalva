@@ -1,12 +1,19 @@
-define ['stores/items'], (ItemsStore) ->
-  items = new ItemsStore()
-  
+define ['promise', 'stores/item'], (Promise, ItemStore) ->
   class Dispatcher
+    _items: new ItemStore()
+
     constructor: ->
 
     searchItem: (str) ->
-      items.search(str).then (ids) ->
-        console.log ids
+      return new Promise (resolve) =>
+        @_items.search(str).then (ids) ->
+          console.log ids
+          resolve ids
 
-    addItem: (name, price, quantity) ->
-      return
+    addItem: (name) ->
+      return new Promise (resolve) =>
+        @_items.add(name).then (res) ->
+          console.log res
+          resolve res
+
+  return Dispatcher

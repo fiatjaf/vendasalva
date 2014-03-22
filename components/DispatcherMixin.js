@@ -1,5 +1,5 @@
 
-define(function() {
+define(['react'], function(React) {
   return {
     propTypes: {
       dispatcher: React.PropTypes.object

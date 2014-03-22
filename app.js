@@ -4,16 +4,16 @@ curl.config({
     react: 'http://cdnjs.cloudflare.com/ajax/libs/react/0.9.0/react.js',
     lodash: 'http://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js',
     moment: 'http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.5.1/moment.min.js',
-    promise: 'lib/promiscuous',
+    promise: 'lib/bluebird',
     pouchdb: 'lib/pouchdb',
-    fullproof: 'lib/fullproof'
+    lunr: 'lib/lunr'
   }
 });
 
-curl(['react', 'dispatcher', 'components/Precos'], function(React, Dispatcher, Precos) {
+curl(['react', 'dispatcher', 'components/SearchItems'], function(React, Dispatcher, SearchItems) {
   var dispatcher;
   dispatcher = new Dispatcher();
-  return React.renderComponent(Precos({
+  return React.renderComponent(SearchItems({
     dispatcher: dispatcher
-  }, document.getElementById('precos')));
+  }), document.getElementById('items'));
 });
