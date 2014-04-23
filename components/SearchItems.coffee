@@ -6,27 +6,28 @@ define ['components/DispatcherMixin', 'react'], (DispatcherMixin, React) ->
     getInitialState: ->
       results: []
 
+    getDefaultProps: ->
+      onChange: ->
+
     updateSearchResult: (e) ->
       @dispatcher.searchItem(e.target.value).then (results) =>
         @setState results: results
 
-    addItem: (e) ->
-      name = e.target.value
-      if name.length > 3
-        @dispatcher.addItem name
-        e.target.value = ''
+    handleSelect: (item, e) ->
+      @props.onChange item._id
+      e.preventDefault()
 
     render: ->
       (div {},
-        (input type: 'search', onChange: @updateSearchResult),
+        (input type: 'search', onChange: @updateSearchResult, value: @props.value),
         (div {},
           (
-            (div ref: item._id,
-              item.name
-            ) for item in @state.results
+            (div
+              ref: item._id
+              onClick: @handleSelect.bind @, item
+            , item.name) for item in @state.results
           )
         ),
-        (input type: 'text', placeholder: 'ADD', onClick: @addItem)
       )
 
 

@@ -67,3 +67,11 @@ define ['pouchdb', 'lunr', 'promise'], (PouchDB, lunr, Promise) ->
             resolve res.id
           else
             reject err
+
+    get: (itemId) ->
+      return new Promise (resolve, reject) =>
+        @db.get itemId, (err, res) ->
+          if not err and res
+            resolve res
+          else
+            reject err

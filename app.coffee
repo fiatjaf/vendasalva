@@ -9,5 +9,5 @@ curl.config
 
 curl ['react', 'dispatcher', 'components/SearchItems'], (React, Dispatcher, SearchItems) ->
   dispatcher = new Dispatcher()
-  React.renderComponent SearchItems(dispatcher: dispatcher), document.getElementById 'items'
+  React.renderComponent Sales(dispatcher: dispatcher), document.getElementById 'sales'
 
