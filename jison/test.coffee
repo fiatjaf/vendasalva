@@ -1,3 +1,29 @@
+jison = require('jison').Parser
+fs = require 'fs'
+grammar = fs.readFileSync 'day-parser.y', 'utf-8'
+console.log grammar
+parser = jison grammar
+input = '''
+        ovo de codorna, 200g
+        bolo de banana, 1kg: 4,80
+        1kg açúcar mascavo
+        500g de cogumelo: 1 real
+        1 pacote de uvas
+        1kg de uvas
+        R$ 4: cacau-em-pó, 400g
+        soja orgânica, 1 pct
+        1 pacote de rúcula: 5 reais
+        2 ramos de alface
+        4 pencas de banana
+        3 pólen: 74,90 (desconto de 2,00)
+        29,90 por 2 bandejas de morangos
+        2 pcts de chá orgânico: R$ 23,40
+        2 mel: 8,20 (ficou devendo)
+        '''
+console.log input
+console.log parser.parse input
+process.exit()
+
 textarea = '''
 vendas:
 300g de tomate
@@ -25,16 +51,6 @@ perdeu:
 2 ramos de espinafre
 1 rúcula (ramo)
 '''
-
-jison = require('jison').Parser
-fs = require 'fs'
-grammar = fs.readFileSync 'day-parser.y', 'utf-8'
-console.log grammar
-parser = jison grammar
-input = 'ovo de codorna, 200g\nalho: 2kg\n'
-console.log input
-console.log parser.parse input
-process.exit()
 
 expected =
   vendas: [
