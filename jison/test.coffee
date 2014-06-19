@@ -19,6 +19,9 @@ input = '''
         29,90 por 2 bandejas de morangos
         2 pcts de chá orgânico: R$ 23,40
         2 mel: 8,20 (ficou devendo)
+        3 1/2 litros de leite (já estava pago)
+        R$ 3: leite, 1 1/2l
+        3 reais por 1 34/67l de leite
         '''
 console.log input
 console.log parser.parse input

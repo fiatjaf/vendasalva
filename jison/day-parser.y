@@ -10,6 +10,8 @@ pacotes?                               return 'UNITY'
 pcts?                                  return 'UNITY'
 pencas?                                return 'UNITY'
 bandejas?                              return 'UNITY'
+litros?                                return 'UNITY'
+"l"                                    return 'UNITY'
 "u"                                    return 'UNITY'
 "kg"                                   return 'UNITY'
 "g"                                    return 'UNITY'
@@ -20,6 +22,7 @@ bandejas?                              return 'UNITY'
 ", "                                   return 'COMMASPACED'
 "-"                                    return 'HYPHEN'
 ","                                    return 'COMMA'
+"/"                                    return 'SLASH'
 "reais"                                return 'BRL'
 "real"                                 return 'BRL'
 "R$"                                   return 'BRL'
@@ -35,6 +38,7 @@ bandejas?                              return 'UNITY'
 %left  POR
 %right OPENP
 %left  CLOSEP
+%right SLASH
 
 %start input
 
@@ -42,6 +46,7 @@ bandejas?                              return 'UNITY'
 
 input
   : input EOF {return res}
+  | input NEWLINE
   | input NEWLINE venda {res.push($3); console.log($3)}
   | venda {res = [$1]}
   ;
@@ -83,6 +88,8 @@ value
 
 num
   : NUMBER COMMA NUMBER {$$ = $1 + '.' + $3}
+  | NUMBER SLASH NUMBER {$$ = parseFloat($1)/parseFloat($3)}
+  | NUMBER num {$$ = parseFloat($1) + parseFloat($2)}
   | NUMBER
   ;
 
