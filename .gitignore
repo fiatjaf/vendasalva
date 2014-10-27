@@ -1,5 +1,8 @@
 *.swp
 *.swo
+*.pyo
+*.pyc
 node_modules
 *.js
 *.css
+ddoc.json

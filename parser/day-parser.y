@@ -47,8 +47,8 @@ litros?                                return 'UNITY'
 input
   : input EOF {return res}
   | input NEWLINE
-  | input NEWLINE venda {res.push($3); console.log($3)}
-  | venda {res = [$1]}
+  | input NEWLINE venda {$3.kind = 'venda'; res.push($3); console.log($3)}
+  | venda {$1.kind = 'venda'; res = [$1]}
   ;
 
 venda
