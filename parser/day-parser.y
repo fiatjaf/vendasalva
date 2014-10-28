@@ -11,22 +11,28 @@ pcts?                                  return 'UNITY'
 pencas?                                return 'UNITY'
 bandejas?                              return 'UNITY'
 litros?                                return 'UNITY'
+caixas?                                return 'UNITY'
+sacos?                                 return 'UNITY'
+ramos?                                 return 'UNITY'
 "l"                                    return 'UNITY'
 "u"                                    return 'UNITY'
 "kg"                                   return 'UNITY'
 "g"                                    return 'UNITY'
 "de"                                   return 'DE'
-"por"                                  return 'POR'
+"+"                                    return 'PLUS'
 ":"                                    return 'COLON'
 ";"                                    return 'SEMICOLON'
 ", "                                   return 'COMMASPACED'
 "-"                                    return 'HYPHEN'
 ","                                    return 'COMMA'
 "/"                                    return 'SLASH'
+"total"                                return 'TOTAL'
+"por"                                  return 'POR'
 "reais"                                return 'BRL'
 "real"                                 return 'BRL'
 "R$"                                   return 'BRL'
 "BRL"                                  return 'BRL'
+cent(avo)?s?                           return 'BRL'
 "("                                    return 'OPENP'
 ")"                                    return 'CLOSEP'
 <<EOF>>                                return 'EOF'
@@ -34,8 +40,11 @@ litros?                                return 'UNITY'
 
 /lex
 
+%right NEWLINE
+%left  STRING
+%right BRL
 %left  DE
-%left  POR
+%right POR
 %right OPENP
 %left  CLOSEP
 %right SLASH
@@ -47,13 +56,42 @@ litros?                                return 'UNITY'
 input
   : input EOF {return res}
   | input NEWLINE
-  | input NEWLINE venda {$3.kind = 'venda'; res.push($3); console.log($3)}
-  | venda {$1.kind = 'venda'; res = [$1]}
+  | input NEWLINE venda { res.push($3); }
+  | input NEWLINE compra { res.push($3); }
+  | input NEWLINE comment { res.push($3); }
+  | venda { res = [$1] }
+  | comment { res = [$1] }
+  | compra { res = [$1] }
+  ;
+
+comment
+  : STRING {$$ = {note: $1, kind: 'comment'}}
+  ;
+
+compra
+  : STRING COLON NEWLINE compra_descr NEWLINE {$$ = $4; $$.fornecedor = $1; $$.kind = 'compra'}
+  | STRING COLON NEWLINE compra_descr {$$ = $4; $$.fornecedor = $1; $$.kind = 'compra'}
+  ;
+
+compra_descr
+  : items extras total { $$ = {items: $1, extras: $2, total: $3} }
+  | items extras { $$ = {items: $1, extras: $2} }
+  | items total { $$ = {items: $1, total: $2} }
+  | items { $$ = {items: $1} }
   ;
 
 venda
-  : venda note {$$ = $1; $$.note = $2}
-  | item_quant
+  : item note {$$ = $1; $$.note = $2; $$.kind = 'venda'}
+  | item {$$ = $1; $$.kind = 'venda'}
+  ;
+
+items
+  : venda NEWLINE items {$$.push ? $$.push($1) : $$ = [$1]}
+  | venda NEWLINE {$$ = [$1]}
+  ;
+
+item
+  : item_quant {$$ = $1}
   | item_quant value_sep value {$$ = $1; $$.value = $3}
   | value value_sep item_quant {$$ = $3; $$.value = $1}
   ;
@@ -64,11 +102,25 @@ item_quant
   | STRING COMMASPACED quant {$$ = $3; $$.item = $1}
   | num STRING  {$$ = {}; $$.q = $1; $$.u = 'u'; $$.item = $2}
   ;
+
+total
+  : TOTAL value_sep value {$$ = $3}
+  ;
+
+extras
+  : extra NEWLINE extras {$$.push ? $$.push($1) : $$ = [$1]}
+  | extra NEWLINE {$$ = [$1]}
+  ;
+
+extra
+  : PLUS STRING value_sep value {$$ = {item: $2, value: $4}}
+  | PLUS STRING {$$ = {item: $2}}
+  ;
   
 value_sep
-  : POR
-  | HYPHEN
+  : HYPHEN
   | COLON
+  | POR
   ;
 
 post_quant_sep
@@ -83,6 +135,7 @@ quant
 value
   : BRL num {$$ = $2}
   | num BRL {$$ = $1}
+  | num CENT {$$ = $1/100}
   | num
   ;
 
