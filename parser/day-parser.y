@@ -4,6 +4,7 @@
 [ \t]+                                 {}
 \n                                     return 'NEWLINE'
 [0-9]+                                 return 'NUMBER'
+pag(amento|o|uei)?                     return 'PAGAMENTO'
 ramos?                                 return 'UNITY'
 unidades?                              return 'UNITY'
 pacotes?                               return 'UNITY'
@@ -27,6 +28,7 @@ ramos?                                 return 'UNITY'
 ","                                    return 'COMMA'
 "/"                                    return 'SLASH'
 "total"                                return 'TOTAL'
+"="                                    return 'EQUALS'
 "por"                                  return 'POR'
 "reais"                                return 'BRL'
 "real"                                 return 'BRL'
@@ -37,6 +39,8 @@ cent(avo)?s?                           return 'BRL'
 ")"                                    return 'CLOSEP'
 <<EOF>>                                return 'EOF'
 [-A-Za-z\u0080-\u00FF0-9 ]+            return 'STRING'
+
+%options case-insensitive
 
 /lex
 
@@ -59,8 +63,10 @@ input
   | input NEWLINE venda { res.push($3); }
   | input NEWLINE compra { res.push($3); }
   | input NEWLINE comment { res.push($3); }
+  | input NEWLINE pagamento { res.push($3); }
   | venda { res = [$1] }
   | comment { res = [$1] }
+  | pagamento { res = [$1] }
   | compra { res = [$1] }
   ;
 
@@ -73,21 +79,31 @@ compra
   | STRING COLON NEWLINE compra_descr {$$ = $4; $$.fornecedor = $1; $$.kind = 'compra'}
   ;
 
-compra_descr
-  : items extras total { $$ = {items: $1, extras: $2, total: $3} }
-  | items extras { $$ = {items: $1, extras: $2} }
-  | items total { $$ = {items: $1, total: $2} }
-  | items { $$ = {items: $1} }
-  ;
-
 venda
   : item note {$$ = $1; $$.note = $2; $$.kind = 'venda'}
   | item {$$ = $1; $$.kind = 'venda'}
   ;
 
-items
-  : venda NEWLINE items {$$.push ? $$.push($1) : $$ = [$1]}
-  | venda NEWLINE {$$ = [$1]}
+pagamento
+  : PAGAMENTO value_sep pagamento_descr {$$ = $3; $$.kind = 'pagamento'}
+  | pagamento_descr value_sep PAGAMENTO {$$ = $1; $$.kind = 'pagamento'}
+  ;
+
+pagamento_descr
+  : STRING value_sep value {$$ = {value: $3, item: $1}}
+  | value value_sep STRING {$$ = {value: $1, item: $3}}
+  ;
+
+compra_descr
+  : itemgroup extras total { $$ = {items: $1, extras: $2, total: $3} }
+  | itemgroup extras { $$ = {items: $1, extras: $2} }
+  | itemgroup total { $$ = {items: $1, total: $2} }
+  | itemgroup { $$ = {items: $1} }
+  ;
+
+itemgroup
+  : item NEWLINE itemgroup {$$.push ? $$.push($1) : $$ = [$1]}
+  | item NEWLINE {$$ = [$1]}
   ;
 
 item
@@ -105,6 +121,7 @@ item_quant
 
 total
   : TOTAL value_sep value {$$ = $3}
+  | EQUALS value {$$ = $2}
   ;
 
 extras

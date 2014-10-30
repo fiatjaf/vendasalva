@@ -32,12 +32,12 @@ Dashboard = React.createClass
   render: ->
     vendas = []
     compras = []
-    despesas = []
+    pagamentos = []
     comments = []
-    caixa = [{item: 'Vendas', value: 0}, {item: 'Despesas', value: 0}]
+    caixa = [{item: 'Vendas', value: 0}, {item: 'Pagamentos', value: 0}]
     saldo = 0
     for fact in @state.facts
-      fact.value = parseFloat fact.value
+      fact.value = parseFloat(fact.value) or 0
 
       switch fact.kind
         when 'venda'
@@ -50,8 +50,8 @@ Dashboard = React.createClass
           caixa[0].value += fact.value
           saldo += fact.value
         when 'compra' then compras.push fact
-        when 'despesa'
-          despesas.push fact
+        when 'pagamento'
+          pagamentos.push fact
           caixa[1].value -= fact.value
           saldo -= fact.value
         when 'caixa'
@@ -85,10 +85,10 @@ Dashboard = React.createClass
               ) for compra, i in compras
             )
           ) if compras.length
-          (div className: 'despesas',
-            (h2 {}, 'Despesas')
-            (Reactable.Table data: despesas)
-          ) if despesas.length
+          (div className: 'pagamentos',
+            (h2 {}, 'Pagamentos')
+            (Reactable.Table data: pagamentos)
+          ) if pagamentos.length
           (div className: 'caixa',
             (h2 {}, 'Movimentações de caixa')
             (table {},
