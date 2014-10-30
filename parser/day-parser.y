@@ -71,7 +71,7 @@ input
   ;
 
 comment
-  : STRING {$$ = {note: $1, kind: 'comment'}}
+  : STRING {$$ = {note: $1, kind: 'comment', lineno: @$.first_line}}
   ;
 
 compra

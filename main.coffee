@@ -115,7 +115,7 @@ Dashboard = React.createClass
           ) if caixa.length
           (div className: 'notas',
             (h2 {}, 'Anotações')
-            (pre {key: Math.random()}, c.note) for c in comments
+            (pre {key: Math.random()}, "#{c.lineno}: #{c.note}") for c in comments
           ) if comments.length
         )
       )
