@@ -5,30 +5,78 @@
       return row[1]
     }))
   }
+  function sum (values) {
+    return values.reduce(function (v, s) { return s + v }, 0)
+  }
+  function sumValues (items) {
+    return sum(items.map(function (i) { return i.value }))
+  }
 }
 
-start = i:block? b:(newline+ block)* newline* { return filterItems(i, b) }
+start = _? i:block? b:(newline+ block)* newline* { return filterItems(i, b) }
 block
-  = n:name colon newline c:compras a:additions newline {
+  = _? n:name colon newline c:compras a:additions? t:total? newline {
+      a = a ? a : [];
+      var realTotal = sumValues(c) + sumValues(a);     
+      if (t && t > realTotal) {
+        a.push({value: (t - realTotal), desc: 'diferença'})
+      } else { t = realTotal  }
+      
       return {
         kind: 'compra',
         fornecedor: n,
         items: c,
-        more: a
+        extras: a,
+        total: t
       } 
     }
-  / v:venda { v.kind = 'venda'; return v; }
-  / k:declaration d:name value_sep v:preco { return {kind: k, desc: d, value: v} }
-  / a:any+ { return {kind: 'comment', note: a.join('')} }
+  / _? v:venda { v.kind = 'venda'; return v; }
+  / _? c:conta { c.kind = 'conta'; return c; }
+  / _? s:saida { s.kind = 'saída'; return s; }
+  / _? e:entrada { e.kind = 'entrada'; return e; }
+  / _? s:saldo { s.kind = 'saldo'; return s; }
+  / _? a:any+ { return {kind: 'comment', note: a.join('')} }
+  
+conta
+  = 'pag'i 'amento'i? name? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'conta'i name? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'boleto'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'fatura'i name? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  
+saida
+  = 'sa'i [ií]i 'da'i _ 'para'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'sa'i [ií]i 'da'i _ 'p/'i sep? e:(name? value_sep?)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'sa'i [ií]i 'da'i (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'retirada'i _ 'para'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'retirada'i _ 'p/'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'retirada'i (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+
+entrada
+  = 'entrou'i _ 'do'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'entrou'i _ 'de'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'entrou'i (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'entraram'i (_? sep?) p:preco e:(_ name)? { return {value: p, desc: e ? e[1] : ''} }
+  / 'entrada'i _ 'do'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'entrada'i _ 'de'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'entrada'i _ 'de'i _ sep? p:preco e:(_ name)? { return {value: p, desc: e ? e[0] : ''} }
+  / 'entrada'i (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+
+saldo
+  = 'saldo' _ name? value_sep? p:preco { return {value: p} }
+  / 'caixa' _ name? value_sep? p:preco { return {value: p} }
+
+sep = _? ':' _? / _? '-' _? / _? '|' _? / _? ';' _?
 
 compras = f:item r:(newline item)* { return filterItems(f, r) }
 additions = newline f:addition r:(newline addition)* { return filterItems(f, r) }
 addition
-  = '=' _? v:preco { return {type: '=', value: v} }
-  / '+' _? v:preco { return {type: '+', value: v} }
-  / '+' _? d:name value_sep v:preco { return {type: '+', value: v, desc: d} }
-  / '-' _? v:preco { return {type: '-', value: v} }
-  / '-' _? d:name value_sep v:preco { return {type: '-', value: v, desc: d} }
+  = '+' _? v:preco { return {value: v} }
+  / '+' _? d:name value_sep v:preco { return {value: v, desc: d} }
+  / '-' _? v:preco { return {value: -v} }
+  / '-' _? d:name value_sep v:preco { return {value: -v, desc: d} }
+total
+  = newline '=' _? v:preco { return v }
+  / newline 'total' _? colon _? v:preco { return v }
 
 venda
   = i:item _ 'no' _ p:pag { i.pagamento = p; return i }
@@ -61,21 +109,7 @@ x
   / n:num _? 'x' { return parseInt(n) }
 
 item
-  = q:value n:name value_sep v:preco {
-      return {
-        item: n,
-        u: 'u',
-        q: q,
-        value: v
-      }
-    }
-  / i:quant quant_sep n:name value_sep v:preco {
-      var item = i
-      i.item = n
-      i.value = v
-      return i
-    }
-  / v:preco value_sep n:name quant_sep i:quant {
+  = i:quant quant_sep n:name value_sep v:preco {
       var item = i
       i.item = n
       i.value = v
@@ -87,21 +121,50 @@ item
       i.value = v
       return i
     }
-
-declaration
-  = saida _? saida_sep _? {return 'saída'}
-  / saida _ {return 'saída'}
-  / entrada _? entrada_sep {return 'entrada'}
-  / entrada _ {return 'entrada'}
-  / saldo _? saldo_sep {return 'saldo'}
-  / saldo _ {return 'saldo'}
-
-saida = 'saída'i / 'saida'i / 'saiu'i / 'retirada'i / '-'
-saida_sep = _ 'para'i _ / _ 'p.'i _ / _ 'p/'i _ / ':' / '-' / '|' / ';'
-entrada = 'entrada'i / 'entrou'i / '+'
-entrada_sep = _ 'de'i _ / _ 'do'i _ / _ 'da'i _ / ':' / '-' / '|' / ';'
-saldo = ''i / ''i / ''i / ''i / ''i
-saldo_sep = ':' / '-' / '|' / ';'
+  / v:preco value_sep n:name quant_sep i:quant {
+      var item = i
+      i.item = n
+      i.value = v
+      return i
+    }
+  / n:name quant_sep i:quant value_sep v:preco {
+      var item = i
+      i.item = n
+      i.value = v
+      return i
+  }
+  / q:value n:name value_sep v:preco {
+      return {
+        item: n,
+        u: 'u',
+        q: q,
+        value: v
+      }
+    }
+  / i:quant n:name value_sep v:preco {
+      var item = i
+      i.item = n
+      i.value = v
+      return i
+    }
+  / v:preco value_sep i:quant n:name {
+      var item = i
+      i.item = n
+      i.value = v
+      return i
+    }
+  / v:preco value_sep n:name i:quant {
+      var item = i
+      i.item = n
+      i.value = v
+      return i
+    }
+  / n:name i:quant value_sep v:preco {
+      var item = i
+      i.item = n
+      i.value = v
+      return i
+  }
 
 preco
   = reais _? v:value { return v }
@@ -121,7 +184,7 @@ quant
 quant_sep
   = _? 'de'i _?
   / _? semicolon _?
-  / _? hyphen _?
+  / _? comma _?
   
 value_sep
   = _? colon _?
@@ -142,7 +205,9 @@ unit
   / 'caixa'i 's'i? { return 'cx' }
   / 'litro'i 's'i? { return 'l' }
   / 'l'i { return 'l' }
-  / 'garrafa' 's'i? { return 'garrafa' }
+  / 'garrafa'i 's'i? { return 'garrafa' }
+  / 'penca'i 's'i? { return 'penca' }
+  / 'bandeja'i 's'i? { return 'bandeja' }
   
 reais = 'reais'i / 'real'i / 'R$'i / 'BRL'
 centavos = 'centavo'i 's'i? / 'cent'i 's'i?
@@ -156,6 +221,5 @@ _ = space+
 colon = ":"
 comma = ","
 semicolon = ';'
-hyphen = '-'
 newline = "\n"
 any = [^\n]

@@ -1,6 +1,6 @@
 React     = require 'react'
 Reactable = require 'Reactable'
-dayParser = require('./parser/day-parser').parse
+dayParser = require('./parser/dia.js').parse
 store     = require './store.coffee'
 
 {div, span, pre,
@@ -32,44 +32,44 @@ Dashboard = React.createClass
   render: ->
     vendas = []
     compras = []
-    pagamentos = []
+    contas = []
     comments = []
-    caixa = [{item: 'Vendas', value: 0}, {item: 'Pagamentos', value: 0}]
-    saldo = 0
+    caixa = [{desc: 'Vendas', value: 0}]
+    caixa.saldo = 0
+    receita = 0
     for fact in @state.facts
       fact.value = parseFloat(fact.value) or 0
 
       switch fact.kind
         when 'venda'
-          vendas.push {
-            'Preço': fact.value
-            'U': fact.u
-            'Item': fact.item
-            'Q': fact.q
-          }
-          caixa[0].value += fact.value
-          saldo += fact.value
+          vendas.push fact
+          caixa[0].value += fact.value if fact.pagamento == 'dinheiro'
+          caixa.saldo += fact.value
+          receita += fact.value
         when 'compra' then compras.push fact
-        when 'pagamento'
-          pagamentos.push fact
-          caixa[1].value -= fact.value
-          saldo -= fact.value
-        when 'caixa'
+        when 'conta'
+          contas.push fact
+        when 'entrada'
           caixa.push fact
-          saldo += fact.value
+          caixa.saldo += fact.value
+        when 'saída'
+          fact.value = -fact.value
+          caixa.push fact
+          caixa.saldo += fact.value
         when 'comment' then comments.push fact
 
     (div className: 'dashboard',
-      (div className: 'two-third',
+      (div className: 'half',
         (Day
           day: (new Date).toISOString().split('T')[0]
           onChange: @dayChanged
         )
       )
-      (div className: 'third',
+      (div className: 'half',
         (div className: 'facts',
           (div className: 'vendas',
             (h2 {}, 'Vendas')
+            (h4 {}, "Total: #{receita}")
             (Reactable.Table data: vendas)
           ) if vendas.length
           (div className: 'compras',
@@ -79,18 +79,18 @@ Dashboard = React.createClass
                 (h3 {}, compra.fornecedor)
                 (Reactable.Table data: compra.items)
                 (div {},
-                  "+ #{extra.item}: #{extra.value}"
+                  "+ #{extra.desc}: #{extra.value}"
                 ) for extra in compra.extras if compra.extras
                 (div {}, "Total: #{compra.total}") if compra.total
               ) for compra, i in compras
             )
           ) if compras.length
-          (div className: 'pagamentos',
+          (div className: 'contas',
             (h2 {}, 'Pagamentos')
-            (Reactable.Table data: pagamentos)
-          ) if pagamentos.length
+            (Reactable.Table data: contas)
+          ) if contas.length
           (div className: 'caixa',
-            (h2 {}, 'Movimentações de caixa')
+            (h2 {}, 'Caixa')
             (table {},
               (thead {},
                 (tr {},
@@ -101,21 +101,21 @@ Dashboard = React.createClass
               )
               (tbody {},
                 (tr {},
-                  (td {}, row.item)
+                  (td {}, row.desc)
                   (td {}, if row.value < 0 then row.value else null)
                   (td {}, if row.value > 0 then row.value else null)
                 ) for row in caixa
               )
               (tfoot {},
                 (tr {},
-                  (th {colSpan: 3}, saldo)
+                  (th {colSpan: 3}, caixa.saldo)
                 )
               )
             )
-          ) if caixa.length
+          )
           (div className: 'notas',
             (h2 {}, 'Anotações')
-            (pre {key: Math.random()}, "#{c.lineno}: #{c.note}") for c in comments
+            (pre {key: Math.random()}, c.note) for c in comments
           ) if comments.length
         )
       )
@@ -151,6 +151,7 @@ Day = React.createClass
       failure = false
       @props.onChange parsed if @props.onChange
     catch x
+      console.log x
       parsed = @state.parsed
       failure = true
 
