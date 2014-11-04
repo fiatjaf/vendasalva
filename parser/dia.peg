@@ -1,0 +1,161 @@
+{
+  function filterItems (first, rows) {
+    var base = first ? [first] : []
+    return base.concat(rows.map(function (row) {
+      return row[1]
+    }))
+  }
+}
+
+start = i:block? b:(newline+ block)* newline* { return filterItems(i, b) }
+block
+  = n:name colon newline c:compras a:additions newline {
+      return {
+        kind: 'compra',
+        fornecedor: n,
+        items: c,
+        more: a
+      } 
+    }
+  / v:venda { v.kind = 'venda'; return v; }
+  / k:declaration d:name value_sep v:preco { return {kind: k, desc: d, value: v} }
+  / a:any+ { return {kind: 'comment', note: a.join('')} }
+
+compras = f:item r:(newline item)* { return filterItems(f, r) }
+additions = newline f:addition r:(newline addition)* { return filterItems(f, r) }
+addition
+  = '=' _? v:preco { return {type: '=', value: v} }
+  / '+' _? v:preco { return {type: '+', value: v} }
+  / '+' _? d:name value_sep v:preco { return {type: '+', value: v, desc: d} }
+  / '-' _? v:preco { return {type: '-', value: v} }
+  / '-' _? d:name value_sep v:preco { return {type: '-', value: v, desc: d} }
+
+venda
+  = i:item _ 'no' _ p:pag { i.pagamento = p; return i }
+  / i:item _ 'em' _ p:pag { i.pagamento = p; return i }
+  / i:item value_sep p:pag { i.pagamento = p; return i }
+  / i:item _ 'de' _ x:x { i.pagamento = 'crédito'; i.x = x; return i } 
+  / i:item _ 'em' _ x:x { i.pagamento = 'crédito'; i.x = x; return i } 
+  / i:item value_sep x:x { i.pagamento = 'crédito'; i.x = x; return i }
+  / i:item value_sep p:pag value_sep x:x { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
+  / i:item value_sep x:x value_sep p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
+  / i:item _ 'em' _ x:x _ 'no' _ p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
+  / i:item _ 'de' _ x:x _ 'no' _ p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
+  / i:item { i.pagamento = 'dinheiro'; return i }
+pag
+  = 'crédito'i {return 'crédito'}
+  / 'credito'i {return 'crédito'}
+  / 'créd'i {return 'crédito'}
+  / 'cred'i {return 'crédito'}
+  / 'débito'i {return 'débito'}
+  / 'debito'i {return 'débito'}
+  / 'déb'i {return 'débito'}
+  / 'deb'i {return 'débito'}
+  / 'dinheiro'i {return 'dinheiro'}
+  / 'cheque'i {return 'cheque'}
+  / 'cartão'i {return 'cartão'}
+  / 'cartao'i {return 'cartão'}
+  / 'cart'i {return 'cartão'}
+x
+  = n:num _ 'vezes' { return parseInt(n) }
+  / n:num _? 'x' { return parseInt(n) }
+
+item
+  = q:value n:name value_sep v:preco {
+      return {
+        item: n,
+        u: 'u',
+        q: q,
+        value: v
+      }
+    }
+  / i:quant quant_sep n:name value_sep v:preco {
+      var item = i
+      i.item = n
+      i.value = v
+      return i
+    }
+  / v:preco value_sep n:name quant_sep i:quant {
+      var item = i
+      i.item = n
+      i.value = v
+      return i
+    }
+  / v:preco value_sep i:quant quant_sep n:name {
+      var item = i
+      i.item = n
+      i.value = v
+      return i
+    }
+
+declaration
+  = saida _? saida_sep _? {return 'saída'}
+  / saida _ {return 'saída'}
+  / entrada _? entrada_sep {return 'entrada'}
+  / entrada _ {return 'entrada'}
+  / saldo _? saldo_sep {return 'saldo'}
+  / saldo _ {return 'saldo'}
+
+saida = 'saída'i / 'saida'i / 'saiu'i / 'retirada'i / '-'
+saida_sep = _ 'para'i _ / _ 'p.'i _ / _ 'p/'i _ / ':' / '-' / '|' / ';'
+entrada = 'entrada'i / 'entrou'i / '+'
+entrada_sep = _ 'de'i _ / _ 'do'i _ / _ 'da'i _ / ':' / '-' / '|' / ';'
+saldo = ''i / ''i / ''i / ''i / ''i
+saldo_sep = ':' / '-' / '|' / ';'
+
+preco
+  = reais _? v:value { return v }
+  / v:value _ reais { return v }
+  / v:value _ centavos { return v/100 }
+  / v:value { return v }
+
+quant
+  = q:value _? u:unit {
+    if (u == 'g') {
+      u = 'kg'
+      q = q/1000
+    }
+    return {u: u, q: q}
+  }
+  
+quant_sep
+  = _? 'de'i _?
+  / _? semicolon _?
+  / _? hyphen _?
+  
+value_sep
+  = _? colon _?
+  
+unit
+  = 'u'i 'nidade'? 's'i? { return 'u' }
+  / 'kg'i 's'i? { return 'kg' }
+  / 'quilo'i 's'i? { return 'kg' }
+  / 'kilo'i 's'i? { return 'kg' }
+  / 'grama'i 's'i? { return 'g' }
+  / 'g'i { return 'g' }
+  / 'punhado'i { return 'punhado' }
+  / 'ramo'i 's'i? { return 'ramo' }
+  / 'pct'i 's'i? { return 'pct' }
+  / 'pacote'i 's'i? { return 'pct' }
+  / 'saco'i 's'i? { return 'saco' }
+  / 'cx'i 's'i? { return 'cx' }
+  / 'caixa'i 's'i? { return 'cx' }
+  / 'litro'i 's'i? { return 'l' }
+  / 'l'i { return 'l' }
+  / 'garrafa' 's'i? { return 'garrafa' }
+  
+reais = 'reais'i / 'real'i / 'R$'i / 'BRL'
+centavos = 'centavo'i 's'i? / 'cent'i 's'i?
+
+name = l:letter+ { return l.join('').trim().toLowerCase() }
+letter = [-A-Za-z\u0080-\u00FF0-9 ]i
+value = n:num+ { return parseFloat(n.join('').replace(',', '.')) }
+num = [,0-9]
+space = " "
+_ = space+
+colon = ":"
+comma = ","
+semicolon = ';'
+hyphen = '-'
+newline = "\n"
+any = [^\n]
