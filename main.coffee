@@ -1,9 +1,10 @@
 React     = require 'react'
 Reactable = require 'Reactable'
+Reais     = require 'reais'
 dayParser = require('./parser/dia.js').parse
 store     = require './store.coffee'
 
-{div, span, pre,
+{div, span, pre, nav,
  small, i, p, a, button,
  h1, h2, h3, h4,
  form, legend, fieldset, input, textarea, select,
@@ -12,18 +13,60 @@ store     = require './store.coffee'
 
 Main = React.createClass
   displayName: 'Main'
+  getInitialState: ->
+    day: (new Date).toISOString().split('T')[0]
+    Chosen: Input
+
   reset: (e) ->
     e.preventDefault()
     store.reset().then(-> location.reload())
+
   render: ->
     (div {id: 'main'},
-      (button
-        onClick: @reset
-      , 'RESET')
-      (Dashboard {})
+      (nav {},
+        (div className: 'menu',
+          (a
+            href: '#'
+            onClick: @jumpTo('Input')
+          , 'Lançamentos')
+          (a
+            href: '#'
+            onClick: @jumpTo('Dias')
+          , 'Dias')
+        )
+        (button
+          onClick: @reset
+        , 'RESET')
+      )
+      (Search {})
+      (div id: 'container',
+        (@state.Chosen
+          day: @state.day
+          onDaySelected: @jumpTo('Input')
+        )
+      )
     )
 
-Dashboard = React.createClass
+  jumpTo: (choice) ->
+    choices =
+      'Input': Input
+      'Dias': Dias
+    (e) =>
+      e.preventDefault() if e and e.preventDefault
+
+      state = {Chosen: choices[choice]}
+      if choice == 'Input' and typeof e == 'string'
+        state.day = e
+
+      @setState state
+
+Search = React.createClass
+  displayName: 'Search'
+
+  render: ->
+    (div id: 'search')
+
+Input = React.createClass
   displayName: 'Dashboard'
 
   getInitialState: ->
@@ -61,7 +104,7 @@ Dashboard = React.createClass
     (div className: 'dashboard',
       (div className: 'half',
         (Day
-          day: (new Date).toISOString().split('T')[0]
+          day: @props.day
           onChange: @dayChanged
         )
       )
@@ -78,9 +121,9 @@ Dashboard = React.createClass
               (li {key: i},
                 (h3 {}, compra.fornecedor)
                 (Reactable.Table data: compra.items)
-                (div {},
+                (div {ref: j},
                   "+ #{extra.desc}: #{extra.value}"
-                ) for extra in compra.extras if compra.extras
+                ) for extra, j in compra.extras if compra.extras
                 (div {}, "Total: #{compra.total}") if compra.total
               ) for compra, i in compras
             )
@@ -100,11 +143,11 @@ Dashboard = React.createClass
                 )
               )
               (tbody {},
-                (tr {},
+                (tr {ref: i},
                   (td {}, row.desc)
                   (td {}, if row.value < 0 then row.value else null)
                   (td {}, if row.value > 0 then row.value else null)
-                ) for row in caixa
+                ) for row, i in caixa
               )
               (tfoot {},
                 (tr {},
@@ -115,7 +158,7 @@ Dashboard = React.createClass
           )
           (div className: 'notas',
             (h2 {}, 'Anotações')
-            (pre {key: Math.random()}, c.note) for c in comments
+            (pre {key: i}, c.note) for c, i in comments
           ) if comments.length
         )
       )
@@ -128,26 +171,23 @@ Day = React.createClass
   displayName: 'Day'
 
   getInitialState: ->
-    raw: ''
+    raw: localStorage.getItem @props.day + ':raw'
+    rev: localStorage.getItem @props.day + ':rev'
     parsed: {}
     failure: false
 
   componentDidMount: ->
     if @props.day
-      store.get('day:' + @props.day).then (doc) =>
-        @setState raw: doc.raw
+      store.get(@props.day).then (doc) =>
+        return if not doc
+        if not localStorage.getItem(@props.day + ':rev') or
+           doc._rev > localStorage.getItem(@props.day + ':rev')
+          @setState rev: doc._rev
+          @parse doc.raw
 
-  render: ->
-    (div className: 'day',
-      (textarea
-        value: @state.raw
-        onChange: @handleChange
-      )
-    )
-
-  handleChange: (e) ->
+  parse: (raw) ->
     try
-      parsed = dayParser e.target.value
+      parsed = dayParser raw
       failure = false
       @props.onChange parsed if @props.onChange
     catch x
@@ -156,9 +196,60 @@ Day = React.createClass
       failure = true
 
     @setState
-      raw: e.target.value
+      raw: raw
       parsed: parsed
       failure: failure
+
+  render: ->
+    (div className: 'day',
+      (textarea
+        value: @state.raw
+        onChange: @handleChange
+      )
+      (button
+        onClick: @save
+      , 'Salvar')
+    )
+
+  handleChange: (e) ->
+    localStorage.setItem @props.day + ':raw', e.target.value
+    localStorage.setItem @props.day + ':rev', @state.rev if @state.rev
+    @parse e.target.value
+
+  save: (e) ->
+    e.preventDefault() if e
+    doc = {_id: @props.day, raw: @state.raw}
+    if @state.rev
+      doc._rev = @state.rev
+    store.save(doc).then((res) =>
+      @setState rev: res.rev
+      localStorage.removeItem(@props.day + ':raw')
+      localStorage.removeItem(@props.day + ':rev')
+    )
+
+Dias = React.createClass
+  displayName: 'Dias'
+  getInitialState: ->
+    days: []
+
+  componentDidMount: ->
+    store.listDays().then((days) =>
+      @setState days: days
+    )
+
+  render: ->
+    (ul {},
+      (li {ref: day},
+        (a
+          href: '#'
+          onClick: @goToDay(day.day)
+        , "#{day.day.split('-').reverse().join('/')}: #{day.receita}")
+      ) for day in @state.days
+    )
+
+  goToDay: (day) -> (e) =>
+    e.preventDefault()
+    @props.onDaySelected day
 
 React.renderComponent Main(), document.body
 
