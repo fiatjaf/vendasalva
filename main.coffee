@@ -16,6 +16,7 @@ Main = React.createClass
   getInitialState: ->
     day: (new Date).toISOString().split('T')[0]
     Chosen: Input
+    couchURL: localStorage.getItem('couchURL') or ''
 
   reset: (e) ->
     e.preventDefault()
@@ -36,7 +37,15 @@ Main = React.createClass
         )
         (button
           onClick: @reset
+          className: 'warning'
         , 'RESET')
+        (input
+          onChange: @updateCouchURL
+          value: @state.couchURL
+        )
+        (button
+          onClick: @sync
+        , 'SYNC')
       )
       (Search {})
       (div id: 'container',
@@ -59,6 +68,17 @@ Main = React.createClass
         state.day = e
 
       @setState state
+
+  updateCouchURL: (e) -> @setState couchURL: e.target.value
+  sync: (e) ->
+    e.preventDefault()
+    syncing = store.sync(@state.couchURL)
+    console.log 'replication started'
+    syncing.on 'change', (info) -> console.log 'change', info
+    syncing.on 'error', (info) -> console.log 'error', info
+    syncing.on 'complete', (info) =>
+      console.log 'replication complete', info
+      localStorage.setItem 'couchURL', @state.couchURL
 
 Search = React.createClass
   displayName: 'Search'
