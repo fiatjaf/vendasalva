@@ -100,7 +100,7 @@ class Store
           day: row.key[2].split('-').reverse().join('/')
           item: row.key[1]
           price: "#{row.value.value} por #{row.value.u}"
-          compra: row.key[3] == 'compra'
+          compra: row.value.compra
         }
     )
 

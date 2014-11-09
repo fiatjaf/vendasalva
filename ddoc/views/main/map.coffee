@@ -24,7 +24,7 @@
     switch fact.kind
       when 'venda'
         receita += fact.value
-        emit ['price', fact.item, string_day, 'venda'], {
+        emit ['price', fact.item, string_day], {
           value: fact.value/fact.q
           u: fact.u
         }
@@ -33,9 +33,10 @@
         proportional = common_costs / fact.total
         for item in fact.items
           individual_price = fact.value / fact.q
-          emit ['price', fact.item, string_day, 'compra'], {
+          emit ['price', fact.item, string_day], {
             value: (fact.value/fact.q) * (1 + proportional)
             u: fact.u
+            compra: true
           }
 
   emit ['receita', year, month, week, day], receita
