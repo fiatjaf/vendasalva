@@ -1,5 +1,5 @@
-Reactable    = require 'Reactable'
 Reais        = require 'reais'
+Titulo       = require('titulo').toLaxTitleCase
 dayParser    = require('./parser/dia.js').parse
 store        = require './store.coffee'
 
@@ -145,7 +145,7 @@ Prices = React.createClass
            , price.day)
           )
           (td {}, price.name)
-          (td {}, price.price)
+          (td {}, 'R$ ' + Reais.fromInteger price.price)
           (td {}, if price.compra then '(preço de compra)' else '')
         ) for price in @state.prices
       )
@@ -174,13 +174,32 @@ Input = React.createClass
 
       switch fact.kind
         when 'venda'
-          vendas.push fact
+          vendas.push {
+            'Quant': fact.q
+            'Produto': "#{Titulo fact.item} (#{fact.u})"
+            'Valor pago': 'R$ ' + Reais.fromInteger fact.value
+            'Forma de pagamento': fact.pagamento + if fact.x then " (#{fact.x}x)" else ''
+          }
           caixa[0].value += fact.value if fact.pagamento == 'dinheiro'
           caixa.saldo += fact.value
           receita += fact.value
-        when 'compra' then compras.push fact
+        when 'compra'
+          compra = fact
+          comprados = compra.items or []
+          compra.items = []
+          for item in comprados
+            compra.items.push {
+              'Quant': item.q
+              'Produto': "#{Titulo item.item} (#{item.u})"
+              'Preço total': 'R$ ' + Reais.fromInteger item.value
+              'Preço unitário': 'R$ ' + Reais.fromInteger item.value/item.q
+            }
+          compras.push compra
         when 'conta'
-          contas.push fact
+          contas.push {
+            'Conta': fact.desc
+            'Valor': 'R$ ' + Reais.fromInteger fact.value
+          }
         when 'entrada'
           caixa.push fact
           caixa.saldo += fact.value
@@ -191,6 +210,12 @@ Input = React.createClass
         when 'comment' then comments.push fact
 
     (div className: 'dashboard',
+      (div className: 'full',
+        (h1 {},
+          if (new Date).toISOString().split('T')[0] == @props.day then 'Hoje, ' else ''
+          @props.day.split('-').reverse().join('/')
+        )
+      )
       (div className: 'half',
         (Day
           day: @props.day
@@ -201,25 +226,37 @@ Input = React.createClass
         (div className: 'facts',
           (div className: 'vendas',
             (h2 {}, 'Vendas')
-            (h4 {}, "Total: #{receita}")
-            (Reactable.Table data: vendas)
+            (h3 {}, "Total: R$ #{Reais.fromInteger receita}")
+            (Reactable.Table
+              data: vendas
+              columns: ['Quant','Produto','Valor pago','Forma de pagamento']
+              sortable: true
+            )
           ) if vendas.length
           (div className: 'compras',
             (h2 {}, 'Compras')
             (ul {},
               (li {key: i},
-                (h3 {}, compra.fornecedor)
-                (Reactable.Table data: compra.items)
+                (h3 {}, Titulo compra.fornecedor)
+                (Reactable.Table
+                  data: compra.items
+                  columns: ['Quant', 'Produto', 'Preço total', 'Preço unitário']
+                  sortable: true
+                )
                 (div {ref: j},
-                  "+ #{extra.desc}: #{extra.value}"
+                  "+ #{Titulo extra.desc}: R$ #{Reais.fromInteger extra.value}"
                 ) for extra, j in compra.extras if compra.extras
-                (div {}, "Total: #{compra.total}") if compra.total
+                (h4 {}, "Total: R$ #{Reais.fromInteger compra.total}") if compra.total
               ) for compra, i in compras
             )
           ) if compras.length
           (div className: 'contas',
             (h2 {}, 'Pagamentos')
-            (Reactable.Table data: contas)
+            (Reactable.Table
+              data: contas
+              columns: ['Conta', 'Valor']
+              sortable: true
+            )
           ) if contas.length
           (div className: 'caixa',
             (h2 {}, 'Caixa')
@@ -233,14 +270,14 @@ Input = React.createClass
               )
               (tbody {},
                 (tr {ref: i},
-                  (td {}, row.desc)
-                  (td {}, if row.value < 0 then row.value else null)
-                  (td {}, if row.value > 0 then row.value else null)
+                  (td {}, Titulo row.desc)
+                  (td {}, if row.value < 0 then 'R$ ' + Reais.fromInteger row.value else null)
+                  (td {}, if row.value > 0 then 'R$ ' + Reais.fromInteger row.value else null)
                 ) for row, i in caixa
               )
               (tfoot {},
                 (tr {},
-                  (th {colSpan: 3}, caixa.saldo)
+                  (th {colSpan: 3}, 'R$ ' + Reais.fromInteger caixa.saldo)
                 )
               )
             )
@@ -272,7 +309,7 @@ Day = React.createClass
         if not localStorage.getItem(@props.day + ':rev') or
            doc._rev > localStorage.getItem(@props.day + ':rev')
           @setState rev: doc._rev
-          @parse doc.raw
+        @parse doc.raw
 
   parse: (raw) ->
     try
@@ -327,13 +364,24 @@ Dias = React.createClass
     )
 
   render: ->
-    (ul {},
-      (li {ref: day},
-        (a
-          href: '#'
-          onClick: @goToDay(day.day)
-        , "#{day.day.split('-').reverse().join('/')}: #{day.receita}")
-      ) for day in @state.days
+    (table id: 'dias',
+      (thead {},
+        (tr {},
+          (th {}, 'Dia')
+          (th {}, 'Total vendido')
+        )
+      )
+      (tbody {},
+        (tr {ref: day},
+          (td {},
+            (a
+              href: "##{day.day}"
+              onClick: @goToDay(day.day)
+            , "#{day.day.split('-').reverse().join('/')}")
+          )
+          (td {}, "R$ #{Reais.fromInteger day.receita}")
+        ) for day in @state.days
+      )
     )
 
   goToDay: (day) -> (e) =>

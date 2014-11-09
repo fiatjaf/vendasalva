@@ -20,7 +20,7 @@ def ddoc():
         f.write(json.dumps(document('ddoc').doc()))
 
 def app():
-    js = subprocess.check_output(['./node_modules/.bin/browserify', '-t', 'coffeeify', '-t', 'reactify', '-t', 'es6ify', '-t', 'brfs', 'main.coffee'])
+    js = subprocess.check_output(['./node_modules/.bin/browserify', '-t', 'coffeeify', '-t', 'brfs', 'main.coffee'])
     with open('assets/app.js', 'w') as f:
         f.write(js)
     css = subprocess.check_output(['./node_modules/.bin/lessc', 'style.less'])

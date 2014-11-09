@@ -15,7 +15,7 @@
 
 start = _? i:block? b:(newline+ block)* newline* { return filterItems(i, b) }
 block
-  = _? n:name colon newline c:compras a:additions? t:total? newline {
+  = _? n:name colon newline c:compras a:additions? t:total? newline? {
       a = a ? a : [];
       var realTotal = sumValues(c) + sumValues(a);     
       if (t && t > realTotal) {
@@ -165,12 +165,20 @@ item
       i.value = v
       return i
   }
+  / n:name value_sep v:preco {
+    return {
+      item: n,
+      u: 'u',
+      q: 1,
+      value: v
+    }
+  }
 
 preco
-  = reais _? v:value { return v }
-  / v:value _ reais { return v }
-  / v:value _ centavos { return v/100 }
-  / v:value { return v }
+  = reais _? v:value { return parseInt(v*100) }
+  / v:value _ reais { return parseInt(v*100) }
+  / v:value _ centavos { return parseInt(v) }
+  / v:value { return parseInt(v*100) }
 
 quant
   = q:value _? u:unit {
@@ -188,32 +196,48 @@ quant_sep
   
 value_sep
   = _? colon _?
+  / _ '--' _
+  / _ '-' _
   
 unit
-  = 'u'i 'nidade'? 's'i? { return 'u' }
+  = 'u'i 'nidade'? 's'i? { return 'unidade' }
   / 'kg'i 's'i? { return 'kg' }
   / 'quilo'i 's'i? { return 'kg' }
   / 'kilo'i 's'i? { return 'kg' }
   / 'grama'i 's'i? { return 'g' }
   / 'g'i { return 'g' }
+  / 'ml'i 's'i? { return 'ml' }
+  / 'mg'i 's'i? { return 'mg' }
+  / 'tanto'i 's'i? { return 'punhado' }
   / 'punhado'i { return 'punhado' }
   / 'ramo'i 's'i? { return 'ramo' }
-  / 'pct'i 's'i? { return 'pct' }
-  / 'pacote'i 's'i? { return 'pct' }
+  / 'pct'i 's'i? { return 'pacote' }
+  / 'pacote'i 's'i? { return 'pacote' }
   / 'saco'i 's'i? { return 'saco' }
-  / 'cx'i 's'i? { return 'cx' }
-  / 'caixa'i 's'i? { return 'cx' }
-  / 'litro'i 's'i? { return 'l' }
-  / 'l'i { return 'l' }
+  / 'sc'i 's'i? { return 'saco' }
+  / 'cx'i 's'i? { return 'caixa' }
+  / 'caixa'i 's'i? { return 'caixa' }
+  / 'litro'i 's'i? { return 'litro' }
+  / 'l'i { return 'litro' }
   / 'garrafa'i 's'i? { return 'garrafa' }
   / 'penca'i 's'i? { return 'penca' }
   / 'bandeja'i 's'i? { return 'bandeja' }
-  
+  / 'vidro'i 's'i? { return 'vidro' }
+  / 'vdr'i 's'i? { return 'vidro' }
+  / 'vd'i 's'i? { return 'vidro' }
+  / 'lata'i 's'i? { return 'lata' }
+  / 'pote'i 's'i? { return 'pote' }
+  / 'pt'i 's'i? { return 'pote' }
+  / 'potinho'i 's'i? { return 'pote' }
+
 reais = 'reais'i / 'real'i / 'R$'i / 'BRL'
 centavos = 'centavo'i 's'i? / 'cent'i 's'i?
 
-name = l:letter+ { return l.join('').trim().toLowerCase() }
-letter = [-A-Za-z\u0080-\u00FF0-9 ]i
+name
+  = l1:letter+ '-' l2:letter+ '-' l3:letter+ { return (l1.join('') + '-' + l2.join('') + '-' + l3.join('')).toLowerCase() }
+  / l1:letter+ '-' l2:letter+ { return (l1.join('') + '-' + l2.join('')).toLowerCase() }
+  / l:letter+ { return l.join('').trim().toLowerCase() }
+letter = [A-Za-z\u0080-\u00FF0-9 ]i
 value = n:num+ { return parseFloat(n.join('').replace(',', '.')) }
 num = [,0-9]
 space = " "
@@ -223,3 +247,4 @@ comma = ","
 semicolon = ';'
 newline = "\n"
 any = [^\n]
+
