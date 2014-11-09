@@ -1,8 +1,7 @@
-React     = require 'react'
-Reactable = require 'Reactable'
-Reais     = require 'reais'
-dayParser = require('./parser/dia.js').parse
-store     = require './store.coffee'
+Reactable    = require 'Reactable'
+Reais        = require 'reais'
+dayParser    = require('./parser/dia.js').parse
+store        = require './store.coffee'
 
 {div, span, pre, nav,
  small, i, p, a, button,
@@ -47,11 +46,14 @@ Main = React.createClass
           onClick: @sync
         , 'SYNC')
       )
-      (Search {})
+      (Search
+        onItemSelected: @jumpTo('Prices')
+      )
       (div id: 'container',
         (@state.Chosen
           day: @state.day
           onDaySelected: @jumpTo('Input')
+          item: @state.item
         )
       )
     )
@@ -60,12 +62,15 @@ Main = React.createClass
     choices =
       'Input': Input
       'Dias': Dias
+      'Prices': Prices
     (e) =>
       e.preventDefault() if e and e.preventDefault
 
       state = {Chosen: choices[choice]}
       if choice == 'Input' and typeof e == 'string'
         state.day = e
+      if choice == 'Prices' and typeof e == 'string'
+        state.item = e
 
       @setState state
 
@@ -82,9 +87,73 @@ Main = React.createClass
 
 Search = React.createClass
   displayName: 'Search'
+  getInitialState: ->
+    opts: []
+
+  componentDidMount: ->
+    @items = lunr ->
+      this.use lunr.pt
+      this.field 'item'
+      this.ref 'item'
+
+    store.listItems().then((items) =>
+      @items.add({item: item}) for item in items
+    )
 
   render: ->
-    (div id: 'search')
+    (div id: 'search',
+      (Autocomplete.Combobox
+        onInput: @handleInput
+        onSelect: @handleSelect
+      ,
+        (Autocomplete.Option
+          key: opt.ref
+          value: opt.ref
+          label: opt.ref
+        ,
+          (div {}, opt.ref)
+        ) for opt in @state.opts
+      )
+    )
+
+  handleInput: (input) ->
+    items = @items.search(input)
+    @setState opts: items
+
+  handleSelect: (value) ->
+    @setState opts: []
+    @props.onItemSelected value
+
+Prices = React.createClass
+  displayName: 'Prices'
+  getInitialState: ->
+    prices: []
+
+  componentDidMount: -> @updatePrices(@props.item)
+  componentWillReceiveProps: (nextProps) -> @updatePrices(nextProps.item)
+
+  updatePrices: (item) -> store.listPrices(item).then((prices) => @setState prices: prices)
+
+  render: ->
+    (table id: 'prices',
+      (tbody {},
+        (tr {},
+          (td {},
+           (a
+             href: "##{price.id}"
+             onClick: @dayClicked.bind @, price.id
+           , price.day)
+          )
+          (td {}, price.name)
+          (td {}, price.price)
+          (td {}, if price.compra then '(preço de compra)' else '')
+        ) for price in @state.prices
+      )
+    )
+
+  dayClicked: (id, e) ->
+    e.preventDefault()
+    @props.onDaySelected id
 
 Input = React.createClass
   displayName: 'Dashboard'

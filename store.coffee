@@ -87,4 +87,31 @@ class Store
       return days.reverse()
     )
 
+  listPrices: (itemName) ->
+    @pouch.query('vendasalva/main',
+      startkey: ['price', itemName, {}]
+      endkey: ['price', itemName, null]
+      descending: true
+      reduce: false
+    ).catch(log).then((res) ->
+      res.rows.map (row) ->
+        {
+          id: row.id
+          day: row.key[2].split('-').reverse().join('/')
+          item: row.key[1]
+          price: "#{row.value.value} por #{row.value.u}"
+          compra: row.key[3] == 'compra'
+        }
+    )
+
+  listItems: ->
+    @pouch.query('vendasalva/main',
+      startkey: ['price', null]
+      endkey: ['price', {}]
+      reduce: true
+      group_level: 2
+    ).catch(log).then((res) ->
+      res.rows.map (row) -> row.key[1]
+    )
+
 module.exports = new Store()

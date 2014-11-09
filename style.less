@@ -9,7 +9,17 @@ nav {
 }
 
 #search {
+  .rf-combobox {
+    width: 80%;
+    margin: auto;
 
+    .rf-combobox-input {
+      width: 95%;
+    }
+    .rf-combobox-list {
+      padding: 0 18px;
+    }
+  }
 }
 
 #container {
@@ -17,6 +27,8 @@ nav {
   margin: 10px auto;
   height: auto;
   overflow: auto;
+
+  & > * { margin: auto; }
 }
 
 .day {
