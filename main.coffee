@@ -1,167 +1,168 @@
 Reais        = require 'reais'
 Titulo       = require('titulo').toLaxTitleCase
+flatten      = require 'flatten'
 dayParser    = require('./parser/dia.js').parse
 store        = require './store.coffee'
 
-{div, span, pre, nav,
- small, i, p, a, button,
- h1, h2, h3, h4,
- form, legend, fieldset, input, textarea, select,
- table, thead, tbody, tfoot, tr, th, td,
- ul, li} = React.DOM
+h = (tag, props, children...) ->
+  if typeof props is 'string' or typeof props is 'object' and 'tagName' of props
+    children.unshift props
+    props = {}
+  children = flatten children or []
+  Cycle.h.apply this, [tag, props, children]
 
-Main = React.createClass
-  displayName: 'Main'
-  getInitialState: ->
-    day: (new Date).toISOString().split('T')[0]
-    Chosen: Input
-    couchURL: localStorage.getItem('couchURL') or ''
+vrenderMain = (props) ->
+  vrenderChosen = tabs[props.chosen or 'Input']
 
-  reset: (e) ->
-    e.preventDefault()
-    store.reset().then(-> location.reload())
+  h '#main'
+  , h 'nav'
+    , h '.menu'
+      , h 'a', href: '#', tabName: 'Input', 'ev-click': '^tab'
+        , 'Lançamentos'
+        h 'a', href: '#', tabName: 'Dias', 'ev-click': '^tab'
+        , 'Dias'
+      , h '^input', value: props.couchURL, 'ev-change': '^changeCouchURL'
+      , h '^button', 'ev-click': '^sync'
+        , 'SYNC'
+    , vrenderSearch(props)
+    , h '#container'
+      , vrenderChosen(props)
 
-  render: ->
-    (div {id: 'main'},
-      (nav {},
-        (div className: 'menu',
-          (a
-            href: '#'
-            onClick: @jumpTo('Input')
-          , 'Lançamentos')
-          (a
-            href: '#'
-            onClick: @jumpTo('Dias')
-          , 'Dias')
+vrenderDias = (props) ->
+  h 'table#dias'
+  , h 'thead'
+    , h 'tr'
+      , h 'th', 'Dia'
+      , h 'th', 'Total vendido'
+  , h 'tbody'
+    , (h 'tr', key: day
+      , h 'td'
+        , h 'a',
+          key: "##{day.day}"
+          value: day.day
+          'ev-click': '^selectDay'
+      , h 'td', "R$ #{Reais.fromInteger day.receita}"
+      ) for day in props.daysList
+
+vrenderSearch = (props) -> h '#search'
+
+vrenderPrices = (props) ->
+  h '#prices'
+  , h 'tbody'
+    , (h 'tr'
+      , h 'td'
+        , h 'a',
+          href: "##{price.id}"
+          value: price.id
+          'ev-click': '^selectDay'
+          , price.day
+      , h 'td', price.name
+      , h 'td', 'R$ ' + Reais.fromInteger price.price
+      , h 'td', if price.compra then '(preço de compra)' else ''
+      ) for price in props.listedPrices
+
+vrenderInput = (props) ->
+  h '#dashboard'
+  , h '.full'
+    , h 'h1', [
+      if (new Date).toISOString().split('T')[0] == props.selectedDay then 'Hoje, ' else ''
+      props.selectedDay.split('-').reverse().join('/')
+    ]
+  , h 'half'
+    , h '.day'
+      , h 'textarea', value: props.raw, 'ev-change': '^inputChanged'
+      , h 'button', 'ev-click': '^saveInput'
+        , 'Salvar'
+  , h 'half'
+    , h '.facts'
+      , h '.vendas'
+        , h 'h2', 'Vendas'
+        , h 'h3', "Total: R$ #{Reais.fromInteger receita}"
+        , vrenderTable data: props.parsedData.vendas
+      , h '.compras'
+        , h 'h2', 'Compras'
+        , h 'ul'
+          , ((h 'li'
+            , h 'h3', Titulo compra.fornecedor
+            , vrenderTable data: compra.items
+            , h 'div', "+ #{Titulo extra.desc}: R$ #{Reais.fromInteger extra.value}"
+            , h 'h4', "Total: R$ #{Reais.fromInteger compra.total}"
+            ) for compra in props.parsedData.compras.length)
+      , h '.contas'
+        , h 'h2', 'Pagamentos'
+        , vrenderTable data: props.parsedData.contas
+      , h '.caixa'
+        , h 'h2', 'Caixa'
+        , h 'table'
+          , h 'thead'
+            , h 'tr'
+              , h 'th'
+              , h 'th', 'Saídas'
+              , h 'th', 'Entradas'
+          , h 'tbody'
+            , ((h 'tr'
+              , h 'td', Titulo row.desc
+              , h 'td', (if row.value < 0 then 'R$ ' + Reais.fromInteger row.value else null)
+              , h 'td', (if row.value > 0 then 'R$ ' + Reais.fromInteger row.value else null)
+              ) for row in props.parsedData.caixa)
+          , h 'tfoot'
+            , h 'tr'
+              , h 'td', 'colspan': 3, 'R$ ' + Reais.fromInteger props.parsedData.caixa.saldo
+      , h 'notas'
+        , h 'h2', 'Anotações'
+        , ((h 'pre', c.note) for c in props.parsedData.comments)
+
+vrenderTable = (data) -> h 'table'
+
+tabs =
+  'Input': vrenderInput
+  'Dias': vrenderDias
+  'Prices': vrenderPrices
+
+View = Cycle.defineView [
+  'couchURL', 'daysList', 'selectedDay', 'searchOptions'
+], (model) ->
+  return {
+    vtree$: model. vrenderMain model
+    events: ['^tab', '^selectDay',
+             '^changeCouchURL', '^sync',
+             '^inputChanged', '^saveInput']
+  }
+
+Intent = Cycle.defineIntent [
+  '^tab', '^selectDay',
+  '^changeCouchURL', '^sync',
+  '^inputChanged', '^saveInput',
+], (view) ->
+  '$goToDay': view['^selectDay'].map((ev) -> ev.target.value)
+  '$setCouchURL': view['^changeCouchURL'].map((ev) -> ev.target.value)
+
+Model = Cycle.defineModel [
+  '$goToDay',
+  '$setCouchURL', 'doSync$',
+  '$processSearchOptions'
+], (intent) ->
+  intent.doSync
+        .combineLatest(intent.setCouchURL, (syncEv, url) ->
+          syncing = store.sync(url)
+          console.log 'replication started'
+          syncing.on 'change', (info) -> console.log 'change', info
+          syncing.on 'error', (info) -> console.log 'error', info
+          syncing.on 'complete', (info) =>
+            console.log 'replication complete', info
+            localStorage.setItem 'couchURL', url
         )
-        (button
-          onClick: @reset
-          className: 'warning'
-        , 'RESET')
-        (input
-          onChange: @updateCouchURL
-          value: @state.couchURL
-        )
-        (button
-          onClick: @sync
-        , 'SYNC')
-      )
-      (Search
-        onItemSelected: @jumpTo('Prices')
-      )
-      (div id: 'container',
-        (@state.Chosen
-          day: @state.day
-          onDaySelected: @jumpTo('Input')
-          item: @state.item
-        )
-      )
-    )
 
-  jumpTo: (choice) ->
-    choices =
-      'Input': Input
-      'Dias': Dias
-      'Prices': Prices
-    (e) =>
-      e.preventDefault() if e and e.preventDefault
+  @items = lunr ->
+    this.use lunr.pt
+    this.field 'item'
+    this.ref 'item'
 
-      state = {Chosen: choices[choice]}
-      if choice == 'Input' and typeof e == 'string'
-        state.day = e
-      if choice == 'Prices' and typeof e == 'string'
-        state.item = e
+  store.listItems().then((items) =>
+    @items.add({item: item}) for item in items
+  )
 
-      @setState state
-
-  updateCouchURL: (e) -> @setState couchURL: e.target.value
-  sync: (e) ->
-    e.preventDefault()
-    syncing = store.sync(@state.couchURL)
-    console.log 'replication started'
-    syncing.on 'change', (info) -> console.log 'change', info
-    syncing.on 'error', (info) -> console.log 'error', info
-    syncing.on 'complete', (info) =>
-      console.log 'replication complete', info
-      localStorage.setItem 'couchURL', @state.couchURL
-
-Search = React.createClass
-  displayName: 'Search'
-  getInitialState: ->
-    opts: []
-
-  componentDidMount: ->
-    @items = lunr ->
-      this.use lunr.pt
-      this.field 'item'
-      this.ref 'item'
-
-    store.listItems().then((items) =>
-      @items.add({item: item}) for item in items
-    )
-
-  render: ->
-    (div id: 'search',
-      (Autocomplete.Combobox
-        onInput: @handleInput
-        onSelect: @handleSelect
-      ,
-        (Autocomplete.Option
-          key: opt.ref
-          value: opt.ref
-          label: opt.ref
-        ,
-          (div {}, opt.ref)
-        ) for opt in @state.opts
-      )
-    )
-
-  handleInput: (input) ->
-    items = @items.search(input)
-    @setState opts: items
-
-  handleSelect: (value) ->
-    @setState opts: []
-    @props.onItemSelected value
-
-Prices = React.createClass
-  displayName: 'Prices'
-  getInitialState: ->
-    prices: []
-
-  componentDidMount: -> @updatePrices(@props.item)
-  componentWillReceiveProps: (nextProps) -> @updatePrices(nextProps.item)
-
-  updatePrices: (item) -> store.listPrices(item).then((prices) => @setState prices: prices)
-
-  render: ->
-    (table id: 'prices',
-      (tbody {},
-        (tr {},
-          (td {},
-           (a
-             href: "##{price.id}"
-             onClick: @dayClicked.bind @, price.id
-           , price.day)
-          )
-          (td {}, price.name)
-          (td {}, 'R$ ' + Reais.fromInteger price.price)
-          (td {}, if price.compra then '(preço de compra)' else '')
-        ) for price in @state.prices
-      )
-    )
-
-  dayClicked: (id, e) ->
-    e.preventDefault()
-    @props.onDaySelected id
-
-Input = React.createClass
-  displayName: 'Dashboard'
-
-  getInitialState: ->
-    facts: []
-
-  render: ->
+  parseInput = (input) ->
     vendas = []
     compras = []
     contas = []
@@ -169,7 +170,7 @@ Input = React.createClass
     caixa = [{desc: 'Vendas', value: 0}]
     caixa.saldo = 0
     receita = 0
-    for fact in @state.facts
+    for fact in facts
       fact.value = parseFloat(fact.value) or 0
 
       switch fact.kind
@@ -209,187 +210,20 @@ Input = React.createClass
           caixa.saldo += fact.value
         when 'comment' then comments.push fact
 
-    (div className: 'dashboard',
-      (div className: 'full',
-        (h1 {},
-          if (new Date).toISOString().split('T')[0] == @props.day then 'Hoje, ' else ''
-          @props.day.split('-').reverse().join('/')
-        )
-      )
-      (div className: 'half',
-        (Day
-          day: @props.day
-          onChange: @dayChanged
-        )
-      )
-      (div className: 'half',
-        (div className: 'facts',
-          (div className: 'vendas',
-            (h2 {}, 'Vendas')
-            (h3 {}, "Total: R$ #{Reais.fromInteger receita}")
-            (Reactable.Table
-              data: vendas
-              columns: ['Quant','Produto','Valor pago','Forma de pagamento']
-              sortable: true
-            )
-          ) if vendas.length
-          (div className: 'compras',
-            (h2 {}, 'Compras')
-            (ul {},
-              (li {key: i},
-                (h3 {}, Titulo compra.fornecedor)
-                (Reactable.Table
-                  data: compra.items
-                  columns: ['Quant', 'Produto', 'Preço total', 'Preço unitário']
-                  sortable: true
-                )
-                (div {ref: j},
-                  "+ #{Titulo extra.desc}: R$ #{Reais.fromInteger extra.value}"
-                ) for extra, j in compra.extras if compra.extras
-                (h4 {}, "Total: R$ #{Reais.fromInteger compra.total}") if compra.total
-              ) for compra, i in compras
-            )
-          ) if compras.length
-          (div className: 'contas',
-            (h2 {}, 'Pagamentos')
-            (Reactable.Table
-              data: contas
-              columns: ['Conta', 'Valor']
-              sortable: true
-            )
-          ) if contas.length
-          (div className: 'caixa',
-            (h2 {}, 'Caixa')
-            (table {},
-              (thead {},
-                (tr {},
-                  (th {})
-                  (th {}, 'Saídas')
-                  (th {}, 'Entradas')
-                )
-              )
-              (tbody {},
-                (tr {ref: i},
-                  (td {}, Titulo row.desc)
-                  (td {}, if row.value < 0 then 'R$ ' + Reais.fromInteger row.value else null)
-                  (td {}, if row.value > 0 then 'R$ ' + Reais.fromInteger row.value else null)
-                ) for row, i in caixa
-              )
-              (tfoot {},
-                (tr {},
-                  (th {colSpan: 3}, 'R$ ' + Reais.fromInteger caixa.saldo)
-                )
-              )
-            )
-          )
-          (div className: 'notas',
-            (h2 {}, 'Anotações')
-            (pre {key: i}, c.note) for c, i in comments
-          ) if comments.length
-        )
-      )
-    )
+  return {
+    props: Rx.Observable.merge(o for k, o of intent)
+                        .startWith({
+                          couchURL: localStorage.getItem 'couchURL'
+                          parsedData: {}
+                          daysList: []
+                          selectedDay: (new Date).toISOString().split('T')[0]
+                          searchOptions: []
+                        })
+                        .map
+  }
 
-  dayChanged: (facts) ->
-    @setState facts: facts
-
-Day = React.createClass
-  displayName: 'Day'
-
-  getInitialState: ->
-    raw: localStorage.getItem @props.day + ':raw'
-    rev: localStorage.getItem @props.day + ':rev'
-    parsed: {}
-    failure: false
-
-  componentDidMount: ->
-    if @props.day
-      store.get(@props.day).then (doc) =>
-        return if not doc
-        if not localStorage.getItem(@props.day + ':rev') or
-           doc._rev > localStorage.getItem(@props.day + ':rev')
-          @setState rev: doc._rev
-        @parse doc.raw
-
-  parse: (raw) ->
-    try
-      parsed = dayParser raw
-      failure = false
-      @props.onChange parsed if @props.onChange
-    catch x
-      console.log x
-      parsed = @state.parsed
-      failure = true
-
-    @setState
-      raw: raw
-      parsed: parsed
-      failure: failure
-
-  render: ->
-    (div className: 'day',
-      (textarea
-        value: @state.raw
-        onChange: @handleChange
-      )
-      (button
-        onClick: @save
-      , 'Salvar')
-    )
-
-  handleChange: (e) ->
-    localStorage.setItem @props.day + ':raw', e.target.value
-    localStorage.setItem @props.day + ':rev', @state.rev if @state.rev
-    @parse e.target.value
-
-  save: (e) ->
-    e.preventDefault() if e
-    doc = {_id: @props.day, raw: @state.raw}
-    if @state.rev
-      doc._rev = @state.rev
-    store.save(doc).then((res) =>
-      @setState rev: res.rev
-      localStorage.removeItem(@props.day + ':raw')
-      localStorage.removeItem(@props.day + ':rev')
-    )
-
-Dias = React.createClass
-  displayName: 'Dias'
-  getInitialState: ->
-    days: []
-
-  componentDidMount: ->
-    store.listDays().then((days) =>
-      @setState days: days
-    )
-
-  render: ->
-    (table id: 'dias',
-      (thead {},
-        (tr {},
-          (th {}, 'Dia')
-          (th {}, 'Total vendido')
-        )
-      )
-      (tbody {},
-        (tr {ref: day},
-          (td {},
-            (a
-              href: "##{day.day}"
-              onClick: @goToDay(day.day)
-            , "#{day.day.split('-').reverse().join('/')}")
-          )
-          (td {}, "R$ #{Reais.fromInteger day.receita}")
-        ) for day in @state.days
-      )
-    )
-
-  goToDay: (day) -> (e) =>
-    e.preventDefault()
-    @props.onDaySelected day
-
-React.renderComponent Main(), document.body
-
+Cycle.renderEvery View.vtree$, document.body
+Cycle.link Model, View, Intent
 
 
 
