@@ -61,12 +61,12 @@ class Store
       # add all days after that, appear they or not in the database
       pos = 1
       loop
-        break if pos >= res.rows.length
 
         refDay = new Date Date.parse days.slice(-1)[0].day
         refDay.setDate refDay.getDate() + 1
         refDay = refDay.toISOString().split('T')[0]
-        if makeDayFromKey(res.rows[pos].key) == refDay
+
+        if res.rows[pos] and makeDayFromKey(res.rows[pos].key) == refDay
           days.push {
             day: makeDayFromKey res.rows[pos].key
             receita: res.rows[pos].value
@@ -74,6 +74,8 @@ class Store
           pos += 1
         else
           days.push {day: refDay, receita: 0}
+
+        break if pos >= res.rows.length and (new Date).toISOString().split('T')[0] <= refDay
 
       # add 5 days before that first one
       for prev in [1..5]

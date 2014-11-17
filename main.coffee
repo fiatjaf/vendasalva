@@ -235,7 +235,7 @@ Intent = Cycle.defineIntent [
     e.preventDefault()
     e.target.value
    )
-  'goToDay$': view['^selectDay'].distinctUntilChanged().map((e) ->
+  'goToDay$': view['^selectDay'].map((e) ->
     e.preventDefault()
     e.target.value
   )
@@ -245,7 +245,7 @@ Intent = Cycle.defineIntent [
   'saveInputText$': view['^saveInput'].map((e) ->
     e.preventDefault()
     e.target.value
-  )
+  ).distinctUntilChanged()
   'search$': view['^searchBoxChanged'].map((e) -> e.target.value)
 
 Model = Cycle.defineModel [
@@ -275,12 +275,14 @@ Model = Cycle.defineModel [
 
   # . go to day
   mods.push intent['goToDay$'].flatMap((day) ->
-    Rx.Observable.fromPromise store.get(day)
-  ).map (doc) ->
-    intent['setInputText$'].onNext(doc.raw)
+    Rx.Observable.fromPromise(store.get(day)).map((doc) ->
+      if not doc then [day, ''] else [day, doc.raw]
+    )
+  ).map (res) ->
+    intent['setInputText$'].onNext(res[1])
 
     (props) ->
-      props.activeDay = doc._id
+      props.activeDay = res[0]
       props.activeTab = 'Input'
       props
 
