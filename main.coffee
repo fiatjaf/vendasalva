@@ -357,6 +357,14 @@ Model = Cycle.defineModel [
           fact.value = -fact.value
           caixa.push fact
           caixa.saldo += fact.value
+        when 'saida/conta'
+          fact.value = -fact.value
+          caixa.push fact
+          caixa.saldo += fact.value
+          contas.push {
+            'Conta': fact.desc
+            'Valor': 'R$ ' + Reais.fromInteger fact.value
+          }
         when 'comment' then comments.push fact
 
     props.parsedData =
@@ -385,7 +393,7 @@ Model = Cycle.defineModel [
                                compras: []
                                contas: []
                                comments: []
-                               caixa: []
+                               caixa: [{desc: 'Vendas', value: 0}]
                                receita: 0
                              dayList: []
                              activeDay: (new Date).toISOString().split('T')[0]

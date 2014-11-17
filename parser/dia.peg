@@ -17,10 +17,9 @@ start = _? i:block? b:(newline+ block)* newline* { return filterItems(i, b) }
 block
   = _? n:name colon newline c:compras a:additions? t:total? newline? {
       a = a ? a : [];
-      var realTotal = sumValues(c) + sumValues(a);     
-      if (t && t > realTotal) {
-        a.push({value: (t - realTotal), desc: 'diferença'})
-      } else { t = realTotal  }
+      var realTotal = sumValues(c) + sumValues(a);
+      if (t && t != realTotal) a.push({value: (t - realTotal), desc: 'diferença'})
+      t = (t && t < realTotal) ? realTotal : t
       
       return {
         kind: 'compra',
@@ -30,25 +29,35 @@ block
         total: t
       } 
     }
-  / _? v:venda { v.kind = 'venda'; return v; }
-  / _? c:conta { c.kind = 'conta'; return c; }
-  / _? s:saida { s.kind = 'saída'; return s; }
-  / _? e:entrada { e.kind = 'entrada'; return e; }
-  / _? s:saldo { s.kind = 'saldo'; return s; }
-  / _? a:any+ { return {kind: 'comment', note: a.join('')} }
+  / _? sc:saida_conta _? { sc.kind = 'saída/conta'; return sc; }
+  / _? c:conta _? { c.kind = 'conta'; return c; }
+  / _? s:saida _? { s.kind = 'saída'; return s; }
+  / _? e:entrada _? { e.kind = 'entrada'; return e; }
+  / _? s:saldo _? { s.kind = 'saldo'; return s; }
+  / _? v:venda _? { v.kind = 'venda'; return v; }
+  / _? a:any+ _? { return {kind: 'comment', note: a.join('')} }
+  
+saida_conta
+  = 'sa'i [ií]i 'da'i _ 'para'i sep? _ c:conta { return c }
+  / 'sa'i [ií]i 'da'i _ 'p/'i sep? _ c:conta { return c }
+  / 'sa'i [ií]i 'da'i (_ name)? _ sep? c:conta { return c }
+  / 'retirada'i _ 'para'i sep? _ c:conta { return c }
+  / 'retirada'i _ 'p/'i sep? _ c:conta { return c }
+  / 'retirada'i (_ name)? sep? _ c:conta { return c }
   
 conta
-  = 'pag'i 'amento'i? name? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'conta'i name? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  = 'pag'i ('amento'i/'o'i)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'conta'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
   / 'boleto'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'fatura'i name? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'fatura'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'taxa'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
   
 saida
-  = 'sa'i [ií]i 'da'i _ 'para'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'sa'i [ií]i 'da'i _ 'p/'i sep? e:(name? value_sep?)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  = 'sa'i [ií]i 'da'i _ 'para'i sep? e:(name value_sep) p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'sa'i [ií]i 'da'i _ 'p/'i sep? e:(name value_sep) p:preco { return {value: p, desc: e ? e[0] : ''} }
   / 'sa'i [ií]i 'da'i (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'retirada'i _ 'para'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'retirada'i _ 'p/'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'retirada'i _ 'para'i sep? e:(name value_sep) p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / 'retirada'i _ 'p/'i sep? e:(name value_sep) p:preco { return {value: p, desc: e ? e[0] : ''} }
   / 'retirada'i (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
 
 entrada
@@ -62,10 +71,10 @@ entrada
   / 'entrada'i (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
 
 saldo
-  = 'saldo' _ name? value_sep? p:preco { return {value: p} }
-  / 'caixa' _ name? value_sep? p:preco { return {value: p} }
+  = 'saldo'i _ name? value_sep? p:preco { return {value: p} }
+  / 'caixa'i _ name? value_sep? p:preco { return {value: p} }
 
-sep = _? ':' _? / _? '-' _? / _? '|' _? / _? ';' _?
+sep = _? ':' _? / _? '-' _? / _? '|' _? / _? ';' _? / _ 'de' _
 
 compras = f:item r:(newline item)* { return filterItems(f, r) }
 additions = newline f:addition r:(newline addition)* { return filterItems(f, r) }
@@ -76,29 +85,37 @@ addition
   / '-' _? d:name value_sep v:preco { return {value: -v, desc: d} }
 total
   = newline '=' _? v:preco { return v }
-  / newline 'total' _? colon _? v:preco { return v }
+  / newline 'total'i _? colon _? v:preco { return v }
 
 venda
-  = i:item _ 'no' _ p:pag { i.pagamento = p; return i }
-  / i:item _ 'em' _ p:pag { i.pagamento = p; return i }
+  = i:item _ 'no'i _ p:pag { i.pagamento = p; return i }
+  / i:item _ 'em'i _ p:pag { i.pagamento = p; return i }
   / i:item value_sep p:pag { i.pagamento = p; return i }
-  / i:item _ 'de' _ x:x { i.pagamento = 'crédito'; i.x = x; return i } 
-  / i:item _ 'em' _ x:x { i.pagamento = 'crédito'; i.x = x; return i } 
+  / i:item _ 'de'i _ x:x { i.pagamento = 'crédito'; i.x = x; return i } 
+  / i:item _ 'em'i _ x:x { i.pagamento = 'crédito'; i.x = x; return i } 
   / i:item value_sep x:x { i.pagamento = 'crédito'; i.x = x; return i }
   / i:item value_sep p:pag value_sep x:x { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
   / i:item value_sep x:x value_sep p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
-  / i:item _ 'em' _ x:x _ 'no' _ p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
-  / i:item _ 'de' _ x:x _ 'no' _ p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
+  / i:item _ 'em'i _ x:x _ 'no'i _ p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
+  / i:item _ 'de'i _ x:x _ 'no'i _ p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
   / i:item { i.pagamento = 'dinheiro'; return i }
 pag
   = 'crédito'i {return 'crédito'}
   / 'credito'i {return 'crédito'}
   / 'créd'i {return 'crédito'}
   / 'cred'i {return 'crédito'}
+  / 'cartão'i _ 'de'i _ 'crédito'i {return 'crédito'}
+  / 'cartao'i _ 'de'i _ 'crédito'i {return 'crédito'}
+  / 'cartão'i _ 'de'i _ 'credito'i {return 'crédito'}
+  / 'cartao'i _ 'de'i _ 'credito'i {return 'crédito'}
   / 'débito'i {return 'débito'}
   / 'debito'i {return 'débito'}
   / 'déb'i {return 'débito'}
   / 'deb'i {return 'débito'}
+  / 'cartão'i _ 'de'i _ 'débito'i {return 'débito'}
+  / 'cartao'i _ 'de'i _ 'débito'i {return 'débito'}
+  / 'cartão'i _ 'de'i _ 'debito'i {return 'débito'}
+  / 'cartao'i _ 'de'i _ 'debito'i {return 'débito'}
   / 'dinheiro'i {return 'dinheiro'}
   / 'cheque'i {return 'cheque'}
   / 'cartão'i {return 'cartão'}
@@ -109,25 +126,25 @@ x
   / n:num _? 'x' { return parseInt(n) }
 
 item
-  = i:quant quant_sep n:name value_sep v:preco {
+  = i:quant quant_sep? n:name value_sep v:preco {
       var item = i
       i.item = n
       i.value = v
       return i
     }
-  / v:preco value_sep i:quant quant_sep n:name {
+  / v:preco value_sep? i:quant quant_sep n:name {
       var item = i
       i.item = n
       i.value = v
       return i
     }
-  / v:preco value_sep n:name quant_sep i:quant {
+  / v:preco value_sep? n:name quant_sep i:quant {
       var item = i
       i.item = n
       i.value = v
       return i
     }
-  / n:name quant_sep i:quant value_sep v:preco {
+  / n:name quant_sep? i:quant value_sep v:preco {
       var item = i
       i.item = n
       i.value = v
@@ -141,7 +158,7 @@ item
         value: v
       }
     }
-  / i:quant n:name value_sep v:preco {
+  / i:quant quant_sep n:name value_sep v:preco {
       var item = i
       i.item = n
       i.value = v
@@ -159,11 +176,13 @@ item
       i.value = v
       return i
     }
-  / n:name i:quant value_sep v:preco {
-      var item = i
-      i.item = n
-      i.value = v
-      return i
+  / u:unit _ n:name value_sep v:preco {
+    return {
+      item: n,
+      u: u,
+      q: 1,
+      value: v
+    }
   }
   / n:name value_sep v:preco {
     return {
@@ -173,6 +192,7 @@ item
       value: v
     }
   }
+
 
 preco
   = reais _? v:value { return parseInt(v*100) }
@@ -200,35 +220,46 @@ value_sep
   / _ '-' _
   
 unit
+  = p:package _ 'de'i _ c:value _? m:measure { return p + '/' + c + m }
+  / p:package _ c:value _? m:measure { return p + '/' + c + m }
+  / p:package { return p }
+  / m:measure { return m }
+
+package
   = 'u'i 'nidade'? 's'i? { return 'unidade' }
-  / 'kg'i 's'i? { return 'kg' }
-  / 'quilo'i 's'i? { return 'kg' }
-  / 'kilo'i 's'i? { return 'kg' }
-  / 'grama'i 's'i? { return 'g' }
-  / 'g'i { return 'g' }
-  / 'ml'i 's'i? { return 'ml' }
-  / 'mg'i 's'i? { return 'mg' }
+  / 'garrafa'i 's'i? { return 'garrafa' }
+  / 'penca'i 's'i? { return 'penca' }
+  / 'bandeja'i 's'i? { return 'bandeja' }
+  / 'bandejinha'i 's'i? { return 'bandeja' }
+  / 'vidro'i 's'i? { return 'vidro' }
+  / 'vdr'i 's'i? { return 'vidro' }
+  / 'vd'i 's'i? { return 'vidro' }
+  / 'lata'i 's'i? { return 'lata' }
+  / 'lt'i 's'i? { return 'lata' }
+  / 'pote'i 's'i? { return 'pote' }
+  / 'pt'i 's'i? { return 'pote' }
+  / 'potinho'i 's'i? { return 'pote' }
   / 'tanto'i 's'i? { return 'punhado' }
   / 'punhado'i { return 'punhado' }
   / 'ramo'i 's'i? { return 'ramo' }
   / 'pct'i 's'i? { return 'pacote' }
   / 'pacote'i 's'i? { return 'pacote' }
   / 'saco'i 's'i? { return 'saco' }
+  / 'saquinho'i 's'i? { return 'saco' }
   / 'sc'i 's'i? { return 'saco' }
   / 'cx'i 's'i? { return 'caixa' }
   / 'caixa'i 's'i? { return 'caixa' }
+
+measure
+  = 'kg'i 's'i? { return 'kg' }
+  / 'quilo'i 's'i? { return 'kg' }
+  / 'kilo'i 's'i? { return 'kg' }
+  / 'grama'i 's'i? { return 'g' }
+  / 'g'i { return 'g' }
+  / 'ml'i 's'i? { return 'ml' }
+  / 'mg'i 's'i? { return 'mg' }
   / 'litro'i 's'i? { return 'litro' }
   / 'l'i { return 'litro' }
-  / 'garrafa'i 's'i? { return 'garrafa' }
-  / 'penca'i 's'i? { return 'penca' }
-  / 'bandeja'i 's'i? { return 'bandeja' }
-  / 'vidro'i 's'i? { return 'vidro' }
-  / 'vdr'i 's'i? { return 'vidro' }
-  / 'vd'i 's'i? { return 'vidro' }
-  / 'lata'i 's'i? { return 'lata' }
-  / 'pote'i 's'i? { return 'pote' }
-  / 'pt'i 's'i? { return 'pote' }
-  / 'potinho'i 's'i? { return 'pote' }
 
 reais = 'reais'i / 'real'i / 'R$'i / 'BRL'
 centavos = 'centavo'i 's'i? / 'cent'i 's'i?
