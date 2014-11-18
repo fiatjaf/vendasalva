@@ -58,14 +58,30 @@ vrenderMain = (props) ->
       (button
         'ev-click': '^sync'
       , 'SYNC')
+      (vrenderSearch props)
     )
-    (vrenderSearch props)
     (div id: 'container',
       (vrenderChosen props)
     )
   )
 
-vrenderSearch = (props) -> (div id: '#search')
+vrenderSearch = (props) ->
+  (input
+    'ev-input': '^searchBoxChanged'
+    type: 'text'
+    attributes:
+      placeholder: 'Procurar produtos'
+  )
+
+vrenderSearchResults = (props) ->
+  (ul {},
+    (li {},
+      (a
+        href: '#'
+        'ev-click': '^itemClicked'
+      , r)
+    ) for r in props.searchResults
+  )
 
 vrenderDias = (props) ->
   (table id: 'dias',
@@ -233,6 +249,7 @@ vrenderTable = (tableDefinition) ->
 tabs =
   'Input': vrenderInput
   'Dias': vrenderDias
+  'SearchResults': vrenderSearchResults
   'Item': vrenderItem
 
 View = Cycle.defineView ['@props'], (model) ->
@@ -241,7 +258,8 @@ View = Cycle.defineView ['@props'], (model) ->
     events: ['^tab', '^selectDay',
              '^changeCouchURL', '^sync',
              '^searchBoxChanged',
-             '^inputChanged', '^saveInput']
+             '^inputChanged', '^saveInput',
+             '^itemClicked']
   }
 
 Intent = Cycle.defineIntent [
@@ -270,7 +288,9 @@ Intent = Cycle.defineIntent [
     e.preventDefault()
     e.target.innerText
   )
-  'search$': view['^searchBoxChanged'].map((e) -> e.target.value)
+  'search$': view['^searchBoxChanged'].throttle(500)
+                                      .map((e) -> e.target.value)
+                                      .distinctUntilChanged()
 
 Model = Cycle.defineModel [
   'changeTab$', 'goToDay$',
@@ -290,12 +310,8 @@ Model = Cycle.defineModel [
     itemsidx.add({item: item}) for item in items
   )
   mods.push intent['search$'].map (term) -> (props) ->
-    props.searchResults = itemsidx.search term
-    props
-
-  # . async initial dayList
-  mods.push Rx.Observable.fromPromise(store.listDays()).map (dayList) -> (props) ->
-    props.dayList = dayList
+    props.searchResults = (opt.ref for opt in itemsidx.search term)
+    props.activeTab = 'SearchResults' if props.searchResults.length
     props
 
   # . go to day
@@ -434,7 +450,7 @@ Model = Cycle.defineModel [
                              dayList: []
                              activeDay: (new Date).toISOString().split('T')[0]
                              activeTab: 'Input'
-                             searchOptions: []
+                             searchResults: []
                              itemData: {}
                            }).scan((props, modification) ->
                              return modification(props)

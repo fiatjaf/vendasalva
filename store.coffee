@@ -145,8 +145,8 @@ class Store
 
   listItems: ->
     @pouch.query('vendasalva/main',
-      startkey: ['price', null]
-      endkey: ['price', {}]
+      startkey: ['item', null]
+      endkey: ['item', {}]
       reduce: true
       group_level: 2
     ).catch(log).then((res) ->
