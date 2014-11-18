@@ -278,12 +278,11 @@ Intent = Cycle.defineIntent [
     e.target.value
   )
   'doSync$': view['^sync'].map((e) -> e.preventDefault())
-  'setCouchURL$': view['^changeCouchURL'].throttle(500).map((e) -> e.target.value)
-  'setInputText$': view['^inputChanged'].throttle(500).map((e) -> e.target.value)
-  'saveInputText$': view['^saveInput'].map((e) ->
-    e.preventDefault()
-    e.target.value
-  ).distinctUntilChanged()
+  'setCouchURL$': view['^changeCouchURL'].throttle(500)
+                                         .map((e) -> e.target.value)
+  'setInputText$': view['^inputChanged'].throttle(500)
+                                        .map((e) -> e.target.value)
+  'saveInputText$': view['^saveInput'].map((e) -> e.preventDefault())
   'showItemData$': view['^itemClicked'].map((e) ->
     e.preventDefault()
     e.target.innerText
@@ -315,7 +314,9 @@ Model = Cycle.defineModel [
     props
 
   # . go to day
-  mods.push intent['goToDay$'].flatMap((day) ->
+  mods.push intent['goToDay$'].startWith(
+    (new Date).toISOString().split('T')[0]
+  ).flatMap((day) ->
     Rx.Observable.fromPromise(store.get(day)).map((doc) ->
       if not doc then [day, ''] else [day, doc.raw]
     )
@@ -334,6 +335,16 @@ Model = Cycle.defineModel [
     (props) ->
       props.activeTab = 'Item'
       props.itemData = itemData
+      props
+
+  # . initial and updated dayList
+  mods.push intent['saveInputText$'].sample(
+    intent['changeTab$'].filter((x) -> x == 'Dias')
+  ).startWith(true).flatMap(->
+    Rx.Observable.fromPromise(store.listDays())
+  ).map (dayList) ->
+    (props) ->
+      props.dayList = dayList
       props
 
   # . go to tab
@@ -362,6 +373,7 @@ Model = Cycle.defineModel [
     try
       facts = parseDay input
     catch e
+      console.log e
       return props
 
     vendas = []
@@ -431,9 +443,12 @@ Model = Cycle.defineModel [
   # . save the input for the day
   mods.push intent['saveInputText$'].map -> (props) ->
     store.get(props.activeDay).then((doc) ->
+      if not doc
+        doc = {_id: props.activeDay}
       doc.raw = props.rawInput
       store.save doc
     )
+    props
 
   return {
     '@props': Rx.Observable.merge(mods)
