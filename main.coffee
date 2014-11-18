@@ -65,6 +65,8 @@ vrenderMain = (props) ->
     )
   )
 
+vrenderSearch = (props) -> (div id: '#search')
+
 vrenderDias = (props) ->
   (table id: 'dias',
     (thead {},
@@ -87,23 +89,40 @@ vrenderDias = (props) ->
     )
   )
 
-vrenderSearch = (props) -> (div id: '#search')
-
-vrenderPrices = (props) ->
-  (table id: 'prices',
-    (tbody {},
-      (tr {},
-        (td {},
-         (a
-           href: "##{price.id}"
-           value: price.id
-           'ev-click': '^selectDay'
-         , price.day)
+vrenderItem = (props) ->
+  (div id: 'item',
+    (h1 {}, Titulo props.itemData.name)
+    (div {},
+      (div className: 'half',
+        (h2 {}, '' + props.itemData.stock) if props.itemData.stock
+      )
+      (div className: 'half',
+        (h2 {}, 'R$ ' + Reais.fromInteger props.itemData.price) if props.itemData.price
+      )
+    )
+    (table id: 'events',
+      (thead {},
+        (tr {},
+          (th {}, 'Dia')
+          (th {}, 'Q')
+          (th {}, 'R$')
+          (th {})
         )
-        (td {}, price.name)
-        (td {}, 'R$ ' + Reais.fromInteger price.price)
-        (td {}, if price.compra then '(preço de compra)' else '')
-      ) for price in @state.prices
+      )
+      (tbody {},
+        (tr {},
+          (td {},
+           (a
+             href: "##{event.id}"
+             value: event.id
+             'ev-click': '^selectDay'
+           , event.day)
+          )
+          (td {}, '' + event.q + ' ' + event.u)
+          (td {}, 'R$ ' + Reais.fromInteger event.p + ' por ' + event.u)
+          (td {}, if event.compra then '(preço de compra)' else '')
+        ) for event in props.itemData.events
+      )
     )
   )
 
@@ -214,7 +233,7 @@ vrenderTable = (tableDefinition) ->
 tabs =
   'Input': vrenderInput
   'Dias': vrenderDias
-  'Prices': vrenderPrices
+  'Item': vrenderItem
 
 View = Cycle.defineView ['@props'], (model) ->
   return {
@@ -228,8 +247,9 @@ View = Cycle.defineView ['@props'], (model) ->
 Intent = Cycle.defineIntent [
   '^tab', '^selectDay',
   '^changeCouchURL', '^sync',
-  '^searchBoxChanged',
   '^inputChanged', '^saveInput',
+  '^searchBoxChanged',
+  '^itemClicked'
 ], (view) ->
   'changeTab$': view['^tab'].map((e) ->
     e.preventDefault()
@@ -246,13 +266,18 @@ Intent = Cycle.defineIntent [
     e.preventDefault()
     e.target.value
   ).distinctUntilChanged()
+  'showItemData$': view['^itemClicked'].map((e) ->
+    e.preventDefault()
+    e.target.innerText
+  )
   'search$': view['^searchBoxChanged'].map((e) -> e.target.value)
 
 Model = Cycle.defineModel [
   'changeTab$', 'goToDay$',
   'setCouchURL$', 'doSync$',
   'search$'
-  'setInputText$', 'saveInputText$'
+  'setInputText$', 'saveInputText$',
+  'showItemData$'
 ], (intent) ->
   mods = []
 
@@ -284,6 +309,15 @@ Model = Cycle.defineModel [
     (props) ->
       props.activeDay = res[0]
       props.activeTab = 'Input'
+      props
+
+  # . go to item - get the prices and estoque for some item
+  mods.push intent['showItemData$'].flatMap(
+    (item) -> Rx.Observable.fromPromise(store.grabItemData(item))
+  ).map (itemData) ->
+    (props) ->
+      props.activeTab = 'Item'
+      props.itemData = itemData
       props
 
   # . go to tab
@@ -401,6 +435,7 @@ Model = Cycle.defineModel [
                              activeDay: (new Date).toISOString().split('T')[0]
                              activeTab: 'Input'
                              searchOptions: []
+                             itemData: {}
                            }).scan((props, modification) ->
                              return modification(props)
                            )
