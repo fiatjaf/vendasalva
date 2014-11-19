@@ -109,35 +109,43 @@ vrenderItem = (props) ->
   (div id: 'item',
     (h1 {}, Titulo props.itemData.name)
     (div {},
-      (div className: 'half',
-        (h2 {}, '' + props.itemData.stock) if props.itemData.stock
+      (div className: 'fourth',
+        (div className: 'display-box',
+          (h3 {className: 'label'}, 'EM ESTOQUE')
+          (h2 {className: 'value'}, '' + props.itemData.stock)
+        ) if props.itemData.stock
+      )
+      (div className: 'fourth',
+        (div className: 'display-box',
+          (h3 {className: 'label'}, 'R$')
+          (h2 {className: 'value'}, Reais.fromInteger props.itemData.price)
+        ) if props.itemData.price
       )
       (div className: 'half',
-        (h2 {}, 'R$ ' + Reais.fromInteger props.itemData.price) if props.itemData.price
-      )
-    )
-    (table id: 'events',
-      (thead {},
-        (tr {},
-          (th {}, 'Dia')
-          (th {}, 'Q')
-          (th {}, 'R$')
-          (th {})
-        )
-      )
-      (tbody {},
-        (tr {},
-          (td {},
-           (a
-             href: "##{event.id}"
-             value: event.id
-             'ev-click': '^selectDay'
-           , event.day)
+        (table id: 'events',
+          (thead {},
+            (tr {},
+              (th {}, 'Dia')
+              (th {}, 'Q')
+              (th {}, 'R$')
+              (th {})
+            )
           )
-          (td {}, '' + event.q + ' ' + event.u)
-          (td {}, 'R$ ' + Reais.fromInteger event.p + ' por ' + event.u)
-          (td {}, if event.compra then '(preço de compra)' else '')
-        ) for event in props.itemData.events
+          (tbody {},
+            (tr {},
+              (td {},
+               (a
+                 href: "##{event.id}"
+                 value: event.id
+                 'ev-click': '^selectDay'
+               , event.day)
+              )
+              (td {}, '' + event.q + ' ' + event.u)
+              (td {}, 'R$ ' + Reais.fromInteger event.p + ' por ' + event.u)
+              (td {}, if event.compra then '(compra)' else '')
+            ) for event in props.itemData.events
+          )
+        )
       )
     )
   )
@@ -152,12 +160,12 @@ vrenderInput = (props) ->
     )
     (div className: 'half',
       (div className: 'day',
-        (textarea
-          'ev-input': '^inputChanged'
-        , props.rawInput)
         (button
           'ev-click': '^saveInput'
         , 'Salvar')
+        (textarea
+          'ev-input': '^inputChanged'
+        , props.rawInput)
       )
     )
     (div className: 'half',
@@ -289,7 +297,6 @@ Intent = Cycle.defineIntent [
   )
   'search$': view['^searchBoxChanged'].throttle(500)
                                       .map((e) -> e.target.value)
-                                      .distinctUntilChanged()
 
 Model = Cycle.defineModel [
   'changeTab$', 'goToDay$',
