@@ -1,6 +1,7 @@
 Reais        = require 'reais'
 Titulo       = require('titulo').toLaxTitleCase
 Cycle        = require 'cyclejs'
+CodeMirror   = require 'codemirror'
 flatten      = require 'flatten'
 parseDay     = require('./parser/dia.js').parse
 store        = require './store.coffee'
@@ -14,10 +15,6 @@ orhs =
     callers
   tag: (tagName) ->
     (properties, children...) ->
-      if typeof properties is 'string' or typeof properties is 'object' and 'tagName' of properties
-        children.unshift properties
-        properties = {}
-      children = flatten(children or []).filter((x) -> x)
       Cycle.h.apply this, [tagName, properties, children]
 
 {div, span, pre, nav,
@@ -31,6 +28,20 @@ orhs =
  'form', 'legend', 'fieldset', 'input', 'textarea', 'select',
  'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td'
  'ul', 'li'
+
+class CodeMirrorWidget
+  constructor: (initialText) ->
+    this.type = 'Widget'
+    this.text = initialText
+  init: ->
+    elem = document.createElement 'div'
+    elem.addEventListener 'DOMNodeInsertedIntoDocument', (e) =>
+      this.cm = CodeMirror elem, {value: this.text}
+    return elem
+  update: (prev, elem) ->
+    cm = this.cm or prev.cm
+    if cm
+      cm.setValue this.text
 
 vrenderMain = (props) ->
   vrenderChosen = tabs[props.activeTab or 'Input']
@@ -163,9 +174,7 @@ vrenderInput = (props) ->
         (button
           'ev-click': '^saveInput'
         , 'Salvar')
-        (textarea
-          'ev-input': '^inputChanged'
-        , props.rawInput)
+        (new CodeMirrorWidget props.rawInput)
       )
     )
     (div className: 'half',
