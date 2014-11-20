@@ -30,18 +30,25 @@ orhs =
  'ul', 'li'
 
 class CodeMirrorWidget
-  constructor: (initialText) ->
-    this.type = 'Widget'
-    this.text = initialText
+  type: 'Widget'
+  constructor: (initialText, properties) ->
+    @text = initialText
+    @properties = properties
+  getEventStream: (streamName) -> @eventStreams[streamName]
   init: ->
     elem = document.createElement 'div'
     elem.addEventListener 'DOMNodeInsertedIntoDocument', (e) =>
-      this.cm = CodeMirror elem, {value: this.text}
+      @cm = CodeMirror elem, {value: @text}
+      for evHook of @properties
+        evName = evHook.substr(3)
+        @cm.on evName, =>
+          if typeof @properties[evHook] == 'function'
+            @properties[evHook].apply(@, arguments)
     return elem
   update: (prev, elem) ->
-    cm = this.cm or prev.cm
+    cm = @cm or prev.cm
     if cm
-      cm.setValue this.text
+      cm.setValue @text
 
 vrenderMain = (props) ->
   vrenderChosen = tabs[props.activeTab or 'Input']
@@ -174,7 +181,9 @@ vrenderInput = (props) ->
         (button
           'ev-click': '^saveInput'
         , 'Salvar')
-        (new CodeMirrorWidget props.rawInput)
+        (new CodeMirrorWidget(props.rawInput, {
+          'ev-change': '^inputChanged'
+        }))
       )
     )
     (div className: 'half',
@@ -298,7 +307,7 @@ Intent = Cycle.defineIntent [
   'setCouchURL$': view['^changeCouchURL'].throttle(500)
                                          .map((e) -> e.target.value)
   'setInputText$': view['^inputChanged'].throttle(500)
-                                        .map((e) -> e.target.value)
+                                        .map((t) -> t.getValue())
   'saveInputText$': view['^saveInput'].map((e) -> e.preventDefault())
   'showItemData$': view['^itemClicked'].map((e) ->
     e.preventDefault()
