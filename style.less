@@ -62,13 +62,28 @@ nav {
     margin-right: auto;
   }
 
+  /* codemirror */
   textarea {
     width: 100%;
     min-height: 600px;
+  }
+  .CodeMirror-vscrollbar { display: none }
+  .CodeMirror {
+    border: 1px solid #eee;
+    height: auto;
+  }
+  .CodeMirror-scroll {
+    overflow-y: hidden;
+    overflow-x: auto;
   }
 }
 
 .facts {
   padding-left: 10px;
 }
+
+.cm-value_sep { color: blue }
+.cm-price { color: red }
+.cm-keyword { color: orange }
+.cm-fornecedor { color: white; background-color: orange; }
 

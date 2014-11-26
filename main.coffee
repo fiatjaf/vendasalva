@@ -29,16 +29,16 @@ orhs =
  'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td'
  'ul', 'li'
 
+CodeMirror.defineMode 'vendasalva', require('./codemirror/mode.coffee')
 class CodeMirrorWidget
   type: 'Widget'
   constructor: (initialText, properties) ->
     @text = initialText
     @properties = properties
-  getEventStream: (streamName) -> @eventStreams[streamName]
   init: ->
     elem = document.createElement 'div'
     elem.addEventListener 'DOMNodeInsertedIntoDocument', (e) =>
-      @cm = CodeMirror elem, {value: @text}
+      @cm = CodeMirror elem, {value: @text, theme: 'blackboard'}
       for evHook of @properties
         evName = evHook.substr(3)
         @cm.on evName, =>

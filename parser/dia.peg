@@ -125,7 +125,8 @@ x
   = n:num _ 'vezes' { return parseInt(n) }
   / n:num _? 'x' { return parseInt(n) }
 
-item
+item = _? item:_item { return item }
+_item
   = i:quant quant_sep? n:name value_sep v:preco {
       var item = i
       i.item = n
@@ -216,8 +217,6 @@ quant_sep
   
 value_sep
   = _? colon _?
-  / _ '--' _
-  / _ '-' _
   
 unit
   = p:package _ 'de'i _ c:value _? m:measure { return p + '/' + c + m }
