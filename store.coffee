@@ -27,6 +27,15 @@ class Store
 
     @pouch.on('error', log)
 
+    # index of items
+    @itemsidx = lunr ->
+      this.use lunr.pt
+      this.field 'item'
+      this.ref 'item'
+    @listItems().then((items) =>
+      @itemsidx.add({item: item}) for item in items
+    )
+
   reset: ->
     @pouch.destroy()
 
@@ -152,5 +161,7 @@ class Store
     ).catch(log).then((res) ->
       res.rows.map (row) -> row.key[1]
     )
+
+  searchItem: (q) -> @itemsidx.search q
 
 module.exports = new Store()

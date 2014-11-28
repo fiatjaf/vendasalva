@@ -30,6 +30,7 @@ orhs =
  'ul', 'li'
 
 CodeMirror.defineMode 'vendasalva', require('./codemirror/mode.coffee')
+CodeMirror.defineExtension 'show-hint', require('./codemirror/show-hint.js')(CodeMirror)
 class CodeMirrorWidget
   type: 'Widget'
   constructor: (initialText, properties) ->
@@ -38,7 +39,23 @@ class CodeMirrorWidget
   init: ->
     elem = document.createElement 'div'
     elem.addEventListener 'DOMNodeInsertedIntoDocument', (e) =>
-      @cm = CodeMirror elem, {value: @text, theme: 'blackboard'}
+      @cm = CodeMirror elem, {
+        mode: 'vendasalva'
+        theme: 'blackboard'
+        value: @text
+      }
+      @cm.focus()
+
+      # autocompletion
+      @cm.on 'keyup', (editor, e) =>
+        e.preventDefault()
+        editor.showHint({
+          hint: require('./codemirror/hint-vendasalva.coffee')
+          completeSingle: false
+          completeOnSingleClick: true
+        })
+
+      # hook to cyclejs
       for evHook of @properties
         evName = evHook.substr(3)
         @cm.on evName, =>
@@ -49,6 +66,7 @@ class CodeMirrorWidget
     cm = @cm or prev.cm
     if cm
       cm.setValue @text
+      cm.focus()
 
 vrenderMain = (props) ->
   vrenderChosen = tabs[props.activeTab or 'Input']
@@ -326,15 +344,8 @@ Model = Cycle.defineModel [
   mods = []
 
   # . search
-  itemsidx = lunr ->
-    this.use lunr.pt
-    this.field 'item'
-    this.ref 'item'
-  store.listItems().then((items) ->
-    itemsidx.add({item: item}) for item in items
-  )
   mods.push intent['search$'].map (term) -> (props) ->
-    props.searchResults = (opt.ref for opt in itemsidx.search term)
+    props.searchResults = (opt.ref for opt in store.searchItem term)
     props.activeTab = 'SearchResults' if props.searchResults.length
     props
 
