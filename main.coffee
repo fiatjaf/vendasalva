@@ -49,6 +49,7 @@ class CodeMirrorWidget
       # autocompletion
       @cm.on 'keyup', (editor, e) =>
         e.preventDefault()
+        return if editor.state.completionActive
         editor.showHint({
           hint: require('./codemirror/hint-vendasalva.coffee')
           completeSingle: false
