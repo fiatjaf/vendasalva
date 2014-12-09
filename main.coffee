@@ -1,33 +1,18 @@
 Reais        = require 'reais'
 Titulo       = require('titulo').toLaxTitleCase
 Cycle        = require 'cyclejs'
+Rx           = Cycle.Rx
 CodeMirror   = require 'codemirror'
 flatten      = require 'flatten'
 parseDay     = require('./parser/dia.js').parse
 store        = require './store.coffee'
-
-Rx = Cycle.Rx
-orhs =
-  tags: ->
-    callers = {}
-    for tagName in arguments
-      callers[tagName] = this.tag tagName
-    callers
-  tag: (tagName) ->
-    (properties, children...) ->
-      Cycle.h.apply this, [tagName, properties, children]
 
 {div, span, pre, nav,
  small, i, p, a, button,
  h1, h2, h3, h4,
  form, legend, fieldset, input, textarea, select,
  table, thead, tbody, tfoot, tr, th, td,
- ul, li} = orhs.tags 'div', 'span', 'pre', 'nav',
- 'small', 'i', 'p', 'a', 'button',
- 'h1', 'h2', 'h3', 'h4',
- 'form', 'legend', 'fieldset', 'input', 'textarea', 'select',
- 'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td'
- 'ul', 'li'
+ ul, li} = require 'virtual-elements'
 
 CodeMirror.defineMode 'vendasalva', require('./codemirror/mode.coffee')
 CodeMirror.defineExtension 'show-hint', require('./codemirror/show-hint.js')(CodeMirror)
