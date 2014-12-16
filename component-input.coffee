@@ -24,6 +24,7 @@ module.exports = (externalHandles) -> (state) ->
     (div className: 'half',
       (div className: 'day',
         (button
+          className: 'primary'
           'ev-click': hg.clickEvent state.handles.saveInputText
         , 'Salvar')
         (new CodeMirrorWidget(state.rawInput, {
@@ -37,6 +38,7 @@ module.exports = (externalHandles) -> (state) ->
           (h2 {}, 'Vendas')
           (h3 {}, "Total: R$ #{Reais.fromInteger parsed.receita}")
           (vrenderTable
+            className: 'primary'
             data: parsed.vendas
             columns: ['Quant','Produto','Valor pago','Forma de pagamento']
           )
@@ -47,6 +49,7 @@ module.exports = (externalHandles) -> (state) ->
             (li {},
               (h3 {}, Titulo compra.fornecedor)
               (vrenderTable
+                className: 'warning'
                 data: compra.items
                 columns: ['Quant', 'Produto', 'Preço total', 'Preço unitário']
               )
@@ -60,13 +63,14 @@ module.exports = (externalHandles) -> (state) ->
         (div className: 'contas',
           (h2 {}, 'Pagamentos')
           (vrenderTable
+            className: 'error'
             data: parsed.contas
             columns: ['Conta', 'Valor']
           )
         ) if parsed.contas.length
         (div className: 'caixa',
           (h2 {}, 'Caixa')
-          (table {},
+          (table className: 'success',
             (thead {},
               (tr {},
                 (th {})

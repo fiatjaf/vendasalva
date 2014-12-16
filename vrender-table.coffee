@@ -1,9 +1,9 @@
 {table, thead, tr, th, tbody, td} = require 'virtual-elements'
 
 module.exports = (tableDefinition) ->
-  {data, columns} = tableDefinition
+  {data, columns, className} = tableDefinition
 
-  (table {},
+  (table className: className,
     (thead {},
       (tr {},
         (th {},
