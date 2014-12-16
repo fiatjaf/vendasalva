@@ -11,8 +11,6 @@ vrenderTable     = require './vrender-table.coffee'
 
 module.exports = (externalHandles) -> (state) ->
   parsed = parse state.rawInput
-  if not parsed
-    return (div className: 'dashboard')
 
   (div className: 'dashboard',
     (div className: 'full',
@@ -96,7 +94,7 @@ module.exports = (externalHandles) -> (state) ->
           (h2 {}, 'Anotações')
           (pre {key: i}, c.note) for c, i in parsed.comments
         ) if parsed.comments.length
-      )
+      ) if parsed
     )
   )
 
@@ -152,7 +150,7 @@ parse = (rawInput) ->
         fact.value = -fact.value
         caixa.push fact
         caixa.saldo += fact.value
-      when 'saida/conta'
+      when 'saída/conta'
         fact.value = -fact.value
         caixa.push fact
         caixa.saldo += fact.value
