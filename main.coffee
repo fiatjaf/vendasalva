@@ -34,10 +34,11 @@ theState = ->
     handles:
       changeTab: (state, data) -> state.activeTab.set data # data is the tabname itself
       saveInputText: (state, data) ->
-        store.get(state.activeDay).then((doc) ->
+        activeDay = state.activeDay()
+        store.get(activeDay).then((doc) ->
           if not doc
-            doc = {_id: state.activeDay}
-          doc.raw = state.rawInput
+            doc = {_id: activeDay}
+          doc.raw = state.rawInput()
           store.save doc
         )
 
@@ -51,8 +52,8 @@ theState = ->
           state.activeDay.set data
           state.activeTab.set 'Input'
         ).then((doc) ->
-          state.rawInput.set doc.raw
-          state.activeDay.set doc._id
+          state.rawInput.set (doc or {raw: ''}).raw
+          state.activeDay.set data
           state.activeTab.set 'Input'
         )
       showItemData: (state, data) ->
