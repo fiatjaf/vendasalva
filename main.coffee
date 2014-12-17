@@ -102,13 +102,22 @@ theState = ->
           state.searchResults.set results
           state.activeTab.set 'SearchResults'
       sync: (state, data) ->
-        couchURL = ''
-        syncing = store.sync(couchURL)
-        console.log 'replication started'
-        syncing.on 'change', (info) -> console.log 'change', info
-        syncing.on 'error', (info) -> console.log 'error', info
-        syncing.on 'complete', (info) =>
-          console.log 'replication complete', info
+        # set callback to be called by the popup window
+        window.passDB = (couchURL) ->
+          opened.close()
+          syncing = store.sync(couchURL)
+          console.log 'replication started'
+          syncing.on 'change', (info) -> console.log 'change', info
+          syncing.on 'error', (info) -> console.log 'error', info
+          syncing.on 'complete', (info) =>
+            console.log 'replication complete', info
+
+        # open the popup
+        opened = window.open(
+          '/popup.html',
+          '_blank',
+          'height=400, width=550'
+        )
 
 vrenderMain = (state) ->
   vrenderChosen = tabs[state.activeTab or 'Input']
