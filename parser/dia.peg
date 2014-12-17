@@ -13,9 +13,9 @@
   }
 }
 
-start = _? i:block? b:(newline+ block)* newline* { return filterItems(i, b) }
+start = _? i:block? b:((newline _?)* block)* _* { return filterItems(i, b) }
 block
-  = _? n:name colon newline c:compras a:additions? t:total? newline? {
+  = _? n:name colon newline c:compras a:additions? t:total? (newline _?)* {
       a = a ? a : [];
       var realTotal = sumValues(c) + sumValues(a);
       if (t && t != realTotal) a.push({value: (t - realTotal), desc: 'diferença'})
@@ -77,15 +77,15 @@ saldo
 sep = _? ':' _? / _? '-' _? / _? '|' _? / _? ';' _? / _ 'de' _
 
 compras = f:item r:(newline item)* { return filterItems(f, r) }
-additions = newline f:addition r:(newline addition)* { return filterItems(f, r) }
+additions = newline _* f:addition r:(newline addition)* { return filterItems(f, r) }
 addition
   = '+' _? v:preco { return {value: v} }
   / '+' _? d:name value_sep v:preco { return {value: v, desc: d} }
   / '-' _? v:preco { return {value: -v} }
   / '-' _? d:name value_sep v:preco { return {value: -v, desc: d} }
 total
-  = newline '=' _? v:preco { return v }
-  / newline 'total'i _? colon _? v:preco { return v }
+  = newline _? '=' _? v:preco { return v }
+  / newline _? 'total'i _? colon _? v:preco { return v }
 
 venda
   = i:item _ 'no'i _ p:pag { i.pagamento = p; return i }
@@ -125,7 +125,7 @@ x
   = n:num _ 'vezes' { return parseInt(n) }
   / n:num _? 'x' { return parseInt(n) }
 
-item = _? item:_item { return item }
+item = _* item:_item { return item }
 _item
   = i:quant quant_sep? n:name value_sep v:preco {
       var item = i
@@ -202,7 +202,7 @@ preco
   / v:value { return parseInt(v*100) }
 
 quant
-  = q:value _? u:unit {
+  = q:value _? u:unit _ {
     if (u == 'g') {
       u = 'kg'
       q = q/1000
@@ -248,6 +248,8 @@ package
   / 'sc'i 's'i? { return 'saco' }
   / 'cx'i 's'i? { return 'caixa' }
   / 'caixa'i 's'i? { return 'caixa' }
+  / 'd' [úu] 'zia'i 's'i? { return 'dúzia' }
+  / 'dz'i 's'i? { return 'dúzia' }
 
 measure
   = 'kg'i 's'i? { return 'kg' }
@@ -277,4 +279,3 @@ comma = ","
 semicolon = ';'
 newline = "\n"
 any = [^\n]
-
