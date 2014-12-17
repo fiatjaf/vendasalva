@@ -12,6 +12,8 @@ vrenderTable     = require './vrender-table.coffee'
 module.exports = (externalHandles) -> (state) ->
   parsed = parse state.rawInput
 
+  customClass = if not parsed then 'error' else if state.usingLocalCache then 'local-cache' else 'saved'
+
   (div className: 'dashboard',
     (div className: 'full',
       (h1 {},
@@ -20,7 +22,7 @@ module.exports = (externalHandles) -> (state) ->
       )
     )
     (div className: 'half',
-      (div className: 'day',
+      (div className: 'day ' + customClass,
         (button
           className: 'primary'
           'ev-click': hg.clickEvent state.handles.saveInputText

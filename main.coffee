@@ -14,12 +14,51 @@ Input            = require './component-input.coffee'
  ul, li} = require 'virtual-elements'
 
 # the model and handles
+goToDay = (state, day) ->
+  store.get(day).then((doc) ->
+    local_raw = localStorage.getItem day + ':raw'
+    doc_rev = if doc then parseInt(doc._rev.split('-')[0]) else 0
+
+    # everything only matters if there is a cached version
+    if local_raw
+      local_rev = parseInt(localStorage.getItem day + ':rev_number') or 0
+
+      # we override it if the pouchdb version is newer
+      if doc and doc_rev > local_rev
+        raw = doc.raw
+        state.usingLocalCache.set false
+        localStorage.setItem day + ':raw', ''
+        localStorage.setItem day + ':rev_number', doc_rev
+
+      # otherwise we keep using it
+      else
+        state.usingLocalCache.set true
+        raw = local_raw
+
+    # if we don't have any cache, use the pouchdb doc
+    # and init the cache (doc_rev will be 0)
+    else if doc
+      raw = doc.raw
+      state.usingLocalCache.set false
+      localStorage.setItem day + ':rev_number', doc_rev
+
+    # or start a new thing
+    else
+      raw = ''
+      state.usingLocalCache.set false
+      localStorage.setItem day + ':rev_number', 0
+
+    state.rawInput.set raw
+    state.activeDay.set day
+    state.activeTab.set 'Input'
+  )
+
 theState = ->
   hg.state
     activeTab: hg.value 'Input'
     activeDay: hg.value (new Date).toISOString().split('T')[0]
-    couchURL: hg.value localStorage.getItem('couchURL') or ''
     rawInput: hg.value ''
+    usingLocalCache: hg.value false
     parsedData: hg.struct
       vendas: hg.array []
       compras: hg.array []
@@ -39,7 +78,11 @@ theState = ->
           if not doc
             doc = {_id: activeDay}
           doc.raw = state.rawInput()
-          store.save doc
+          store.save(doc).then(->
+            localStorage.removeItem activeDay + ':raw'
+            localStorage.removeItem activeDay + ':rev_number'
+            state.usingLocalCache.set false
+          )
         )
 
       showDaysList: (state, data) ->
@@ -47,15 +90,7 @@ theState = ->
           state.daysList.set daysList
           state.activeTab.set 'Dias'
         )
-      goToDay: (state, data) -> # data is the day itself, as a string
-        store.get(data).catch(->
-          state.activeDay.set data
-          state.activeTab.set 'Input'
-        ).then((doc) ->
-          state.rawInput.set (doc or {raw: ''}).raw
-          state.activeDay.set data
-          state.activeTab.set 'Input'
-        )
+      goToDay: (state, data) -> goToDay state, data # data is the day itself, as a string
       showItemData: (state, data) ->
         store.grabItemData(item).then((itemData) ->
           state.itemData.set itemData
@@ -67,13 +102,13 @@ theState = ->
           state.searchResults.set results
           state.activeTab.set 'SearchResults'
       sync: (state, data) ->
-        syncing = store.sync(state.couchURL)
+        couchURL = ''
+        syncing = store.sync(couchURL)
         console.log 'replication started'
         syncing.on 'change', (info) -> console.log 'change', info
         syncing.on 'error', (info) -> console.log 'error', info
         syncing.on 'complete', (info) =>
           console.log 'replication complete', info
-          localStorage.setItem 'couchURL', state.couchURL
 
 vrenderMain = (state) ->
   vrenderChosen = tabs[state.activeTab or 'Input']
@@ -190,9 +225,21 @@ vrenderItem = (state) ->
 
 state = theState()
 
+# startup functions
+(->
+  goToDay state, state.activeDay()
+)()
+
 # standalone handles
 externalHandles = ((state) ->
-  inputTextChanged: (data) -> state.rawInput.set data.cm.getValue()
+  inputTextChanged: (data) ->
+    activeDay = state.activeDay()
+    rawInput = data.cm.getValue()
+    return if rawInput == state.rawInput()
+
+    localStorage.setItem activeDay + ':raw', rawInput
+    state.usingLocalCache.set true
+    state.rawInput.set rawInput
 )(state)
 
 tabs =
