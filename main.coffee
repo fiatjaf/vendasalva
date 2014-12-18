@@ -109,7 +109,7 @@ theState = ->
           console.log 'replication started'
           syncing.on 'change', (info) -> console.log 'change', info
           syncing.on 'error', (info) -> console.log 'error', info
-          syncing.on 'complete', (info) =>
+          syncing.on 'complete', (info) ->
             console.log 'replication complete', info
 
         # open the popup

@@ -1,33 +1,25 @@
-fs      = require 'fs'
 PouchDB = require 'pouchdb'
+PEG     = require 'pegjs'
 
-log = -> console.log arguments
+log = -> console.log arguments[0]
 
 class Store
   constructor: (name='vendasalva') ->
     @pouch = new PouchDB(name)
 
-    ddoc = JSON.parse fs.readFileSync __dirname + '/ddoc.json', encoding: 'utf-8'
-    @pouch.get(ddoc._id).then((doc) =>
-      if doc and doc._rev
-        _rev = doc._rev
-
-        # check for update num and update if it matches
-        # or is not being used
-        if ddoc.update and ddoc.update == doc.update
-          return
-
-      ddoc._rev = _rev
-      @pouch.put(ddoc)
-    ).catch(=>
-      @pouch.put(ddoc)
-    )
-
     @changes = @pouch.changes()
-
     @pouch.on('error', log)
 
-    # index of items
+    @buildParser()
+    @buildItemsIndex()
+
+  buildParser: ->
+    @parser = {parse: -> []}
+    @get('_design/vendasalva').then((doc) =>
+      @parser = PEG.buildParser doc.grammar
+    )
+
+  buildItemsIndex: ->
     @itemsidx = lunr ->
       this.use lunr.pt
       this.field 'item'
@@ -36,8 +28,9 @@ class Store
       @itemsidx.add({item: item}) for item in items
     )
 
-  reset: ->
-    @pouch.destroy()
+  afterSyncHook: (info) ->
+    @buildParser()
+    @buildItemsIndex()
 
   on: (type, listener) ->
     @changes.on(type, listener)
@@ -49,7 +42,9 @@ class Store
     @pouch.put(doc).catch(log)
 
   sync: (to) ->
-    @pouch.sync(to)
+    syncinc = @pouch.sync(to)
+    syncinc.on 'complete', (info) => @afterSyncHook info
+    return syncinc
 
   listDays: ->
     @pouch.query('vendasalva/main',
@@ -163,5 +158,7 @@ class Store
     )
 
   searchItem: (q) -> @itemsidx.search q
+
+  parseDay: (s) -> @parser.parse s
 
 module.exports = new Store()

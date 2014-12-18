@@ -1,7 +1,7 @@
 hg               = require 'mercury'
 Titulo           = require('titulo').toLaxTitleCase
 
-parseDay         = require('./parser/dia.js').parse
+store            = require './store.coffee'
 CodeMirrorWidget = require './codemirror/vendasalva-widget.coffee'
 vrenderTable     = require './vrender-table.coffee'
 
@@ -102,7 +102,7 @@ module.exports = (externalHandles) -> (state) ->
 
 parse = (rawInput) ->
   try
-    facts = parseDay rawInput
+    facts = store.parseDay rawInput
   catch e
     console.log e
     return null
