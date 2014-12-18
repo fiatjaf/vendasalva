@@ -2,6 +2,7 @@
 
 import sys
 import json
+import requests
 import subprocess
 
 def parser():
@@ -14,10 +15,31 @@ def parser():
     with open('ddoc/views/main/map.js', 'w') as f:
         f.write(mapfun)
 
+def grammar():
+    with open('parser/dia.peg') as s:
+        grammar = s.read()
+    with open('ddoc.json') as d:
+        ddoc = json.load(d)
+
+    ddoc['grammar'] = grammar
+    with open('ddoc.json', 'w') as t:
+        t.write(json.dumps(ddoc))
+
 def ddoc():
+    filterfun = subprocess.check_output(['coffee', '--print', '--bare', '--compile', 'ddoc/filters/ddocs-only.coffee'])
+    with open('ddoc/filters/ddocs-only.js', 'w') as f:
+        f.write(filterfun)
+
     from couchapp.localdoc import document
     with open('ddoc.json', 'w') as f:
         f.write(json.dumps(document('ddoc').doc()))
+
+def upload_ddoc():
+    ddoc = json.load(open('ddoc.json'))
+    id = '_design/' + ddoc['_id'].split('/')[1]
+    rev = requests.head(sys.argv[2] + '/' + id).headers['Etag']
+    ddoc['_rev'] = rev[1:-1]
+    requests.put(sys.argv[2] + '/' + id, headers={'content-type': 'application/json'}, data=json.dumps(ddoc)).text
 
 def app():
     js = subprocess.check_output(['./node_modules/.bin/browserify', '-t', 'coffeeify', '-t', 'brfs', 'main.coffee'])
@@ -34,17 +56,16 @@ def run():
     SocketServer.TCPServer(("", 3000), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()
 
 if len(sys.argv) == 1:
-    parser()
-    ddoc()
     app()
 elif sys.argv[1] == 'parser':
     parser()
 elif sys.argv[1] == 'ddoc':
     ddoc()
-elif sys.argv[1] == 'app':
-    app()
-elif sys.argv[1] == 'run':
+elif sys.argv[1] == 'upload-ddoc':
     parser()
+    grammar()
     ddoc()
+    upload_ddoc()
+elif sys.argv[1] == 'run':
     app()
     run()
