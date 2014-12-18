@@ -56,10 +56,10 @@ class Store
         (new Date key[1], key[2]-1, key[4]).toISOString().split('T')[0]
 
       # add first day that appears in the database
-      first = res.rows[0]
+      first = if res then res.rows[0] else null
       days = [{
-        day: makeDayFromKey first.key
-        receita: first.value
+        day: if first then makeDayFromKey first.key else (new Date).toISOString().split('T')[0]
+        receita: if first then first.value else 0
       }]
 
       # add all days after that, appear they or not in the database
@@ -70,7 +70,7 @@ class Store
         refDay.setDate refDay.getDate() + 1
         refDay = refDay.toISOString().split('T')[0]
 
-        if res.rows[pos] and makeDayFromKey(res.rows[pos].key) == refDay
+        if res and res.rows[pos] and makeDayFromKey(res.rows[pos].key) == refDay
           days.push {
             day: makeDayFromKey res.rows[pos].key
             receita: res.rows[pos].value
@@ -79,7 +79,8 @@ class Store
         else
           days.push {day: refDay, receita: 0}
 
-        break if pos >= res.rows.length and (new Date).toISOString().split('T')[0] <= refDay
+        max = if res then res.rows.length else 0
+        break if pos >= max and (new Date).toISOString().split('T')[0] <= refDay
 
       # add 5 days before that first one
       for prev in [1..5]
