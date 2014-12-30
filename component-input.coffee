@@ -9,7 +9,7 @@ vrenderTable     = require './vrender-table.coffee'
  table, thead, tbody, tfoot, tr, th, td,
  ul, li} = require 'virtual-elements'
 
-module.exports = Input = (externalHandles) -> (state) ->
+Input = (externalHandles) -> (state) ->
   parsed = parse state.rawInput
 
   customClass = if not parsed then 'error' else if state.usingLocalCache then 'local-cache' else 'saved'
@@ -169,3 +169,4 @@ parse = (rawInput) ->
   caixa: caixa
   receita: receita
 
+module.exports = Input

@@ -29,11 +29,11 @@ module.exports = ->
         S.willBe 'value_sep'
       else
         S.willBe null
-      return 'error'
+      return 'header'
     else if S.is(null) and ___.match(pric, false)
       S.notSol = true
       S.willBe 'price'
-      return 'error'
+      return 'header'
     # /price
 
     # quant
