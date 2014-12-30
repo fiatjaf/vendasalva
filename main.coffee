@@ -13,7 +13,7 @@ Input            = require './component-input.coffee'
  table, thead, tbody, tfoot, tr, th, td,
  ul, li} = require 'virtual-elements'
 
-# the model and handles
+# the model and channels
 goToDay = (state, day) ->
   store.get(day).then((doc) ->
     local_raw = localStorage.getItem day + ':raw'
@@ -70,7 +70,7 @@ theState = ->
     searchResults: hg.value []
     itemData: hg.value {}
 
-    handles:
+    channels:
       changeTab: (state, data) -> state.activeTab.set data # data is the tabname itself
       saveInputText: (state, data) ->
         activeDay = state.activeDay()
@@ -128,16 +128,16 @@ vrenderMain = (state) ->
         (a
           href: '#'
           value: 'Input'
-          'ev-click': hg.clickEvent state.handles.changeTab, 'Input'
+          'ev-click': hg.sendClick state.channels.changeTab, 'Input'
         , 'Lançamentos')
         (a
           href: '#'
           value: 'Dias'
-          'ev-click': hg.clickEvent state.handles.showDaysList
+          'ev-click': hg.sendClick state.channels.showDaysList
         , 'Dias')
       )
       (button
-        'ev-click': hg.clickEvent state.handles.sync
+        'ev-click': hg.sendClick state.channels.sync
       , 'SYNC')
       (vrenderSearch state)
     )
@@ -148,7 +148,7 @@ vrenderMain = (state) ->
 
 vrenderSearch = (state) ->
   (input
-    'ev-input': hg.changeEvent state.handles.search
+    'ev-input': hg.sendChange state.channels.search
     name: 'term'
     type: 'text'
     attributes:
@@ -160,7 +160,7 @@ vrenderSearchResults = (state) ->
     (li {},
       (a
         href: '#'
-        'ev-click': hg.clickEvent state.handles.showItemData
+        'ev-click': hg.sendClick state.channels.showItemData
       , r)
     ) for r in state.searchResults
   )
@@ -179,7 +179,7 @@ vrenderDias = (state) ->
           (a
             href: "##{day.day}"
             value: day.day
-            'ev-click': hg.clickEvent state.handles.goToDay, day.day
+            'ev-click': hg.sendClick state.channels.goToDay, day.day
           , "#{day.day.split('-').reverse().join('/')}")
         )
         (td {}, "R$ #{Reais.fromInteger day.receita}")
@@ -219,7 +219,7 @@ vrenderItem = (state) ->
                (a
                  href: "##{event.id}"
                  value: event.id
-                 'ev-click': hg.clickEvent state.handles.goToDay, event.id
+                 'ev-click': hg.sendClick state.channels.goToDay, event.id
                , event.day)
               )
               (td {}, '' + event.q + ' ' + event.u)
@@ -239,7 +239,7 @@ state = theState()
   goToDay state, state.activeDay()
 )()
 
-# standalone handles
+# standalone channels
 externalHandles = ((state) ->
   inputTextChanged: (data) ->
     activeDay = state.activeDay()
@@ -252,7 +252,7 @@ externalHandles = ((state) ->
 )(state)
 
 tabs =
-  'Input': Input externalHandles
+  'Input': Input(externalHandles)
   'Dias': vrenderDias
   'SearchResults': vrenderSearchResults
   'Item': vrenderItem

@@ -9,7 +9,7 @@ vrenderTable     = require './vrender-table.coffee'
  table, thead, tbody, tfoot, tr, th, td,
  ul, li} = require 'virtual-elements'
 
-module.exports = (externalHandles) -> (state) ->
+module.exports = Input = (externalHandles) -> (state) ->
   parsed = parse state.rawInput
 
   customClass = if not parsed then 'error' else if state.usingLocalCache then 'local-cache' else 'saved'
@@ -25,7 +25,7 @@ module.exports = (externalHandles) -> (state) ->
       (div className: 'day ' + customClass,
         (button
           className: 'primary'
-          'ev-click': hg.clickEvent state.handles.saveInputText
+          'ev-click': hg.sendClick state.channels.saveInputText
         , 'Salvar')
         (new CodeMirrorWidget(state.rawInput, {
           'ev-change': externalHandles.inputTextChanged
