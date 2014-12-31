@@ -1,15 +1,95 @@
 hg               = require 'mercury'
 Titulo           = require('titulo').toLaxTitleCase
+date             = require 'date-extended'
 
 store            = require './store.coffee'
 CodeMirrorWidget = require './codemirror/vendasalva-widget.coffee'
 vrenderTable     = require './vrender-table.coffee'
 
+updateDay = (state, day) ->
+  store.get(day).then((doc) ->
+    raw = checkLocalCache state, day, doc
+
+    state.rawInput.set raw
+    state.activeDay.set day
+  )
+
+checkLocalCache = (state, day, doc) ->
+  local_raw = localStorage.getItem day + ':raw'
+  doc_rev = if doc then parseInt(doc._rev.split('-')[0]) else 0
+
+  # everything only matters if there is a cached version
+  if local_raw
+    local_rev = parseInt(localStorage.getItem day + ':rev_number') or 0
+
+    # we override it if the pouchdb version is newer
+    if doc and doc_rev > local_rev
+      raw = doc.raw
+      state.usingLocalCache.set false
+      localStorage.setItem day + ':raw', ''
+      localStorage.setItem day + ':rev_number', doc_rev
+
+    # otherwise we keep using it
+    else
+      state.usingLocalCache.set true
+      raw = local_raw
+
+  # if we don't have any cache, use the pouchdb doc
+  # and init the cache (doc_rev will be 0)
+  else if doc
+    raw = doc.raw
+    state.usingLocalCache.set false
+    localStorage.setItem day + ':rev_number', doc_rev
+
+  # or start a new thing
+  else
+    raw = ''
+    state.usingLocalCache.set false
+    localStorage.setItem day + ':rev_number', 0
+
+  return raw
+
+inputTextChanged = (state, cmData) ->
+  activeDay = state.activeDay()
+  rawInput = cmData.cm.getValue()
+  return if rawInput == state.rawInput()
+
+  localStorage.setItem activeDay + ':raw', rawInput
+  state.usingLocalCache.set true
+  state.rawInput.set rawInput
+
+Input = (options={}) ->
+  state = hg.state
+    usingLocalCache: hg.value false
+    activeDay: hg.value date.format(new Date, 'yyyy-MM-dd')
+    rawInput: hg.value ''
+
+    channels:
+      saveInputText: (state, data) ->
+        activeDay = state.activeDay()
+        store.get(activeDay).then((doc) ->
+          if not doc
+            doc = {_id: activeDay}
+          doc.raw = state.rawInput()
+          store.save(doc).then(->
+            localStorage.removeItem activeDay + ':raw'
+            localStorage.removeItem activeDay + ':rev_number'
+            state.usingLocalCache.set false
+          )
+        )
+
+    customHandlers: hg.varhash {}
+
+  state.customHandlers.put('inputTextChanged', hg.value inputTextChanged.bind null, state)
+  state.customHandlers.put('updateDay', hg.value updateDay.bind null, state)
+
+  return state
+
 {div, h1, h2, h3, h4, h5, h6, button, pre,
  table, thead, tbody, tfoot, tr, th, td,
  ul, li} = require 'virtual-elements'
 
-Input = (externalHandles) -> (state) ->
+vrender = (state) ->
   parsed = parse state.rawInput
 
   customClass = if not parsed then 'error' else if state.usingLocalCache then 'local-cache' else 'saved'
@@ -28,7 +108,7 @@ Input = (externalHandles) -> (state) ->
           'ev-click': hg.sendClick state.channels.saveInputText
         , 'Salvar')
         (new CodeMirrorWidget(state.rawInput, {
-          'ev-change': externalHandles.inputTextChanged
+          'ev-change': state.customHandlers.inputTextChanged
         }))
       )
     )
@@ -168,5 +248,7 @@ parse = (rawInput) ->
   comments: comments
   caixa: caixa
   receita: receita
+
+Input.buildRenderer = (state) -> vrender.bind null, state
 
 module.exports = Input

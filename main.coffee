@@ -1,6 +1,7 @@
 hg               = require 'mercury'
 Reais            = require 'reais'
 Titulo           = require('titulo').toLaxTitleCase
+date             = require 'date-extended'
 
 store            = require './store.coffee'
 vrenderTable     = require './vrender-table.coffee'
@@ -14,51 +15,13 @@ Input            = require './component-input.coffee'
  ul, li} = require 'virtual-elements'
 
 # the model and channels
-goToDay = (state, day) ->
-  store.get(day).then((doc) ->
-    local_raw = localStorage.getItem day + ':raw'
-    doc_rev = if doc then parseInt(doc._rev.split('-')[0]) else 0
-
-    # everything only matters if there is a cached version
-    if local_raw
-      local_rev = parseInt(localStorage.getItem day + ':rev_number') or 0
-
-      # we override it if the pouchdb version is newer
-      if doc and doc_rev > local_rev
-        raw = doc.raw
-        state.usingLocalCache.set false
-        localStorage.setItem day + ':raw', ''
-        localStorage.setItem day + ':rev_number', doc_rev
-
-      # otherwise we keep using it
-      else
-        state.usingLocalCache.set true
-        raw = local_raw
-
-    # if we don't have any cache, use the pouchdb doc
-    # and init the cache (doc_rev will be 0)
-    else if doc
-      raw = doc.raw
-      state.usingLocalCache.set false
-      localStorage.setItem day + ':rev_number', doc_rev
-
-    # or start a new thing
-    else
-      raw = ''
-      state.usingLocalCache.set false
-      localStorage.setItem day + ':rev_number', 0
-
-    state.rawInput.set raw
-    state.activeDay.set day
-    state.activeTab.set 'Input'
-  )
+setDay = (state, day) ->
+  state.InputState.customHandlers.updateDay()(day)
+  state.activeTab.set 'Input'
 
 theState = ->
-  hg.state
+  state = hg.state
     activeTab: hg.value 'Input'
-    activeDay: hg.value (new Date).toISOString().split('T')[0]
-    rawInput: hg.value ''
-    usingLocalCache: hg.value false
     parsedData: hg.struct
       vendas: hg.array []
       compras: hg.array []
@@ -70,27 +33,16 @@ theState = ->
     searchResults: hg.value []
     itemData: hg.value {}
 
+    InputState: Input()
+
     channels:
       changeTab: (state, data) -> state.activeTab.set data # data is the tabname itself
-      saveInputText: (state, data) ->
-        activeDay = state.activeDay()
-        store.get(activeDay).then((doc) ->
-          if not doc
-            doc = {_id: activeDay}
-          doc.raw = state.rawInput()
-          store.save(doc).then(->
-            localStorage.removeItem activeDay + ':raw'
-            localStorage.removeItem activeDay + ':rev_number'
-            state.usingLocalCache.set false
-          )
-        )
-
       showDaysList: (state, data) ->
         store.listDays().then((daysList) ->
           state.daysList.set daysList
           state.activeTab.set 'Dias'
         )
-      goToDay: (state, data) -> goToDay state, data # data is the day itself, as a string
+      goToDay: (state, data) -> setDay state, data # data is the day itself, as a string
       showItemData: (state, data) ->
         store.grabItemData(item).then((itemData) ->
           state.itemData.set itemData
@@ -119,8 +71,16 @@ theState = ->
           'height=400, width=550'
         )
 
+    customHandlers: hg.varhash {}
+
+  state.customHandlers.put('setDay', hg.value setDay.bind null, state)
+
+  return state
+    
 vrenderMain = (state) ->
   vrenderChosen = tabs[state.activeTab or 'Input']
+  if vrenderChosen == 'Input'
+    vrenderChosen = Input.buildRenderer state.InputState
 
   (div id: 'main',
     (nav {},
@@ -235,24 +195,11 @@ vrenderItem = (state) ->
 state = theState()
 
 # startup functions
-(->
-  goToDay state, state.activeDay()
-)()
-
-# standalone channels
-externalHandles = ((state) ->
-  inputTextChanged: (data) ->
-    activeDay = state.activeDay()
-    rawInput = data.cm.getValue()
-    return if rawInput == state.rawInput()
-
-    localStorage.setItem activeDay + ':raw', rawInput
-    state.usingLocalCache.set true
-    state.rawInput.set rawInput
-)(state)
+initialDay = date.format(date.parseDate(location.hash.substr(1), 'yyyy-MM-dd') or new Date, 'yyyy-MM-dd')
+state.customHandlers.setDay()(initialDay)
 
 tabs =
-  'Input': Input(externalHandles)
+  'Input': 'Input'
   'Dias': vrenderDias
   'SearchResults': vrenderSearchResults
   'Item': vrenderItem
