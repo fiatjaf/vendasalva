@@ -82,6 +82,11 @@ vrenderMain = (state) ->
   if vrenderChosen == 'Input'
     vrenderChosen = Input.buildRenderer state.InputState
 
+  activeDate = date.parseDate state.InputState.activeDay, 'yyyy-MM-dd'
+  if 16 > Math.abs date.difference activeDate, new Date, 'hour'
+    prettydate = 'hoje'
+  prettydate = date.format(activeDate, 'dd/MM')
+
   (div id: 'main',
     (nav {},
       (div className: 'menu',
@@ -89,7 +94,7 @@ vrenderMain = (state) ->
           href: '#'
           value: 'Input'
           'ev-click': hg.sendClick state.channels.changeTab, 'Input'
-        , 'Lançamentos')
+        , 'Lançamentos de ' + prettydate)
         (a
           href: '#'
           value: 'Dias'
