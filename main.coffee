@@ -44,7 +44,7 @@ theState = ->
         )
       goToDay: (state, data) -> setDay state, data # data is the day itself, as a string
       showItemData: (state, data) ->
-        store.grabItemData(item).then((itemData) ->
+        store.grabItemData(data).then((itemData) ->
           state.itemData.set itemData
           state.activeTab.set 'Item'
         )
@@ -104,29 +104,26 @@ vrenderMain = (state) ->
       (button
         'ev-click': hg.sendClick state.channels.sync
       , 'SYNC')
-      (vrenderSearch state)
+      (input
+        'ev-input': hg.sendChange state.channels.search
+        name: 'term'
+        type: 'text'
+        attributes:
+          placeholder: 'Procurar produtos'
+      )
     )
     (div id: 'container',
       (vrenderChosen state)
     )
   )
 
-vrenderSearch = (state) ->
-  (input
-    'ev-input': hg.sendChange state.channels.search
-    name: 'term'
-    type: 'text'
-    attributes:
-      placeholder: 'Procurar produtos'
-  )
-
 vrenderSearchResults = (state) ->
-  (ul {},
+  (ul id: 'search',
     (li {},
       (a
         href: '#'
-        'ev-click': hg.sendClick state.channels.showItemData
-      , r)
+        'ev-click': hg.sendClick state.channels.showItemData, r.ref
+      , r.ref)
     ) for r in state.searchResults
   )
 
