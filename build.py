@@ -63,8 +63,8 @@ elif sys.argv[1] == 'ddoc':
     ddoc()
 elif sys.argv[1] == 'upload-ddoc':
     parser()
-    grammar()
     ddoc()
+    grammar()
     upload_ddoc()
 elif sys.argv[1] == 'run':
     app()

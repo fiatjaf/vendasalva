@@ -113,7 +113,7 @@ vrender = (state) ->
       )
     )
     (div className: 'half',
-      (div className: 'facts',
+      (div id: 'facts',
         (div className: 'vendas',
           (h2 {}, 'Vendas')
           (h3 {}, "Total: R$ #{Reais.fromInteger parsed.receita}")

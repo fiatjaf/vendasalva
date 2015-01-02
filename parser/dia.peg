@@ -13,20 +13,19 @@
   }
 }
 
-start = _? i:block? b:((newline _?)* block)* _* { return filterItems(i, b) }
+start = _? i:block? b:(blank* block)* blank* !. { return filterItems(i, b) }
 block
-  = _? n:name colon newline c:compras a:additions? t:total? (newline _?)* {
+  = _? n:name colon newline c:compras a:additions? t:total? blank* {
       a = a ? a : [];
       var realTotal = sumValues(c) + sumValues(a);
       if (t && t != realTotal) a.push({value: (t - realTotal), desc: 'diferença'})
-      t = (t && t < realTotal) ? realTotal : t
       
       return {
         kind: 'compra',
         fornecedor: n,
         items: c,
         extras: a,
-        total: t
+        total: realTotal
       } 
     }
   / _? sc:saida_conta _? { sc.kind = 'saída/conta'; return sc; }
@@ -273,6 +272,7 @@ letter = [A-Za-z\u0080-\u00FF0-9 ]i
 value = n:num+ { return parseFloat(n.join('').replace(',', '.')) }
 num = [,0-9]
 space = " "
+blank = [\n ]
 _ = space+
 colon = ":"
 comma = ","
