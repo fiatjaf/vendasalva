@@ -1,11 +1,11 @@
 {table, thead, tr, th, tbody, td} = require 'virtual-elements'
 
 module.exports = (tableDefinition) ->
-  {data, columns, className} = tableDefinition
+  {data, columns, style} = tableDefinition
 
-  (table className: className,
+  (table className: 'table table-bordered table-hover table-stripped',
     (thead {},
-      (tr {},
+      (tr {className: style},
         (th {},
           col
         ) for col in columns

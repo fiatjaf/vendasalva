@@ -88,31 +88,51 @@ vrenderMain = (state) ->
   prettydate = date.format(activeDate, 'dd/MM')
 
   (div id: 'main',
-    (nav {},
-      (div className: 'menu',
-        (a
-          href: '#'
-          value: 'Input'
-          'ev-click': hg.sendClick state.channels.changeTab, 'Input'
-        , 'Lançamentos de ' + prettydate)
-        (a
-          href: '#'
-          value: 'Dias'
-          'ev-click': hg.sendClick state.channels.showDaysList
-        , 'Dias')
-      )
-      (button
-        'ev-click': hg.sendClick state.channels.sync
-      , 'SYNC')
-      (input
-        'ev-input': hg.sendChange state.channels.search
-        name: 'term'
-        type: 'text'
-        attributes:
-          placeholder: 'Procurar produtos'
+    (nav className: 'navbar navbar-default',
+      (div className: 'container',
+        (div className: 'navbar-header',
+          (button
+            className: 'btn btn-default'
+            'ev-click': hg.sendClick state.channels.sync
+          , 'SYNC')
+        )
+        (div {},
+          (form className: 'navbar-form navbar-left',
+            (div className: 'form-group', style: {display: 'inline'},
+              (div className: 'input-group',
+                (input
+                  'ev-input': hg.sendChange state.channels.search
+                  name: 'term'
+                  type: 'text'
+                  attributes:
+                    placeholder: 'Procurar produtos'
+                )
+                (span className: 'input-group-addon',
+                  (span className: 'glyphicon glyphicon-search')
+                )
+              )
+            )
+          )
+          (ul className: 'nav navbar-right nav-pills',
+            (li className: ('active' if state.activeTab == 'Input'),
+              (a
+                href: '#'
+                value: 'Input'
+                'ev-click': hg.sendClick state.channels.changeTab, 'Input'
+              , 'Lançamentos de ' + prettydate)
+            )
+            (li className: ('active' if state.activeTab == 'Dias') or '',
+              (a
+                href: '#'
+                value: 'Dias'
+                'ev-click': hg.sendClick state.channels.showDaysList
+              , 'Dias')
+            )
+          )
+        )
       )
     )
-    (div id: 'container',
+    (div className: 'container', id: 'container',
       (vrenderChosen state)
     )
   )
@@ -128,7 +148,25 @@ vrenderSearchResults = (state) ->
   )
 
 vrenderDias = (state) ->
-  (table id: 'dias',
+  rows = []
+  for day, j in state.daysList
+    month = parseInt day.day.split('-')[1]
+    monthClass = switch
+      when month % 3 == 0 then 'success'
+      when month % 2 == 0 then 'active'
+      else ''
+    rows.push (tr className: monthClass + ' ' + (if j < 15 then 'bigger' else ''),
+      (td {},
+        (a
+          href: "##{day.day}"
+          value: day.day
+          'ev-click': hg.sendClick state.channels.goToDay, day.day
+        , "#{day.day.split('-').reverse().join('/')}")
+      )
+      (td {}, "R$ #{Reais.fromInteger day.receita}")
+    )
+
+  (table id: 'dias', className: 'table table-bordered',
     (thead {},
       (tr {},
         (th {}, 'Dia')
@@ -136,16 +174,7 @@ vrenderDias = (state) ->
       )
     )
     (tbody {},
-      (tr {},
-        (td {},
-          (a
-            href: "##{day.day}"
-            value: day.day
-            'ev-click': hg.sendClick state.channels.goToDay, day.day
-          , "#{day.day.split('-').reverse().join('/')}")
-        )
-        (td {}, "R$ #{Reais.fromInteger day.receita}")
-      ) for day in state.daysList
+      rows
     )
   )
 
@@ -153,20 +182,20 @@ vrenderItem = (state) ->
   (div id: 'item',
     (h1 {}, Titulo state.itemData.name)
     (div {},
-      (div className: 'fourth',
+      (div className: 'col-md-3',
         (div className: 'display-box',
-          (h3 {className: 'label'}, 'EM ESTOQUE')
-          (h2 {className: 'value'}, '' + state.itemData.stock)
+          (h3 {className: 'box-label'}, 'EM ESTOQUE')
+          (h2 {className: 'box-value'}, '' + state.itemData.stock)
         ) if state.itemData.stock
       )
-      (div className: 'fourth',
+      (div className: 'col-md-3',
         (div className: 'display-box',
-          (h3 {className: 'label'}, 'R$')
-          (h2 {className: 'value'}, Reais.fromInteger state.itemData.price)
+          (h3 {className: 'box-label'}, 'R$')
+          (h2 {className: 'box-value'}, Reais.fromInteger state.itemData.price)
         ) if state.itemData.price
       )
-      (div className: 'half',
-        (table id: 'events',
+      (div className: 'col-md-6',
+        (table id: 'events', className: 'table table-stripped table-bordered table-hover',
           (thead {},
             (tr {},
               (th {}, 'Dia')
@@ -176,7 +205,7 @@ vrenderItem = (state) ->
             )
           )
           (tbody {},
-            (tr {},
+            (tr className: (if event.compra then 'success' else ''),
               (td {},
                (a
                  href: "##{event.id}"

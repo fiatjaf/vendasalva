@@ -101,10 +101,10 @@ vrender = (state) ->
         state.activeDay.split('-').reverse().join('/')
       )
     )
-    (div className: 'half',
+    (div className: 'col-md-6',
       (div className: 'day ' + customClass,
         (button
-          className: 'primary'
+          className: 'btn btn-primary'
           'ev-click': hg.sendClick state.channels.saveInputText
         , 'Salvar')
         (new CodeMirrorWidget(state.rawInput, {
@@ -112,13 +112,13 @@ vrender = (state) ->
         }))
       )
     )
-    (div className: 'half',
+    (div className: 'col-md-6',
       (div id: 'facts',
         (div className: 'vendas',
           (h2 {}, 'Vendas')
           (h3 {}, "Total: R$ #{Reais.fromInteger parsed.receita}")
           (vrenderTable
-            className: 'primary'
+            style: 'info'
             data: parsed.vendas
             columns: ['Quant','Produto','Valor pago','Forma de pagamento']
           )
@@ -129,7 +129,7 @@ vrender = (state) ->
             (li {},
               (h3 {}, Titulo compra.fornecedor)
               (vrenderTable
-                className: 'warning'
+                style: 'warning'
                 data: compra.items
                 columns: ['Quant', 'Produto', 'Preço total', 'Preço unitário']
               )
@@ -143,16 +143,16 @@ vrender = (state) ->
         (div className: 'contas',
           (h2 {}, 'Pagamentos')
           (vrenderTable
-            className: 'error'
+            style: 'danger'
             data: parsed.contas
             columns: ['Conta', 'Valor']
           )
         ) if parsed.contas.length
         (div className: 'caixa',
           (h2 {}, 'Caixa')
-          (table className: 'success',
+          (table className: 'table table-bordered table-hover',
             (thead {},
-              (tr {},
+              (tr className: 'success',
                 (th {})
                 (th {}, 'Saídas')
                 (th {}, 'Entradas')
