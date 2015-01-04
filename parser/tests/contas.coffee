@@ -16,9 +16,14 @@ PAG TERRA FRUTA : r$ 20,00
 
 res = parser.parse test
 
-res[0].should.deep.equal {kind: 'saída/conta', value: 4000, desc: 'luz'}
-res[1].should.deep.equal {kind: 'conta', value: 2000, desc: 'água'}
-res[2].should.deep.equal {kind: 'conta', value: 2500, desc: 'incêndio'}
-res[3].should.deep.equal {kind: 'conta', value: 29000, desc: 'solarius'}
-res[4].should.deep.equal {kind: 'saída/conta', value: 50000, desc: 'funcionária'}
-res[5].should.deep.equal {kind: 'conta', value: 2000, desc: 'terra fruta'}
+try
+  res[0].should.deep.equal {kind: 'saída/conta', value: 4000, desc: 'luz'}
+  res[1].should.deep.equal {kind: 'conta', value: 2000, desc: 'água'}
+  res[2].should.deep.equal {kind: 'conta', value: 2500, desc: 'incêndio'}
+  res[3].should.deep.equal {kind: 'conta', value: 29000, desc: 'solarius'}
+  res[4].should.deep.equal {kind: 'saída/conta', value: 50000, desc: 'funcionária'}
+  res[5].should.deep.equal {kind: 'conta', value: 2000, desc: 'terra fruta'}
+catch e
+  console.log JSON.stringify res, null, 2
+  console.log e
+  throw e

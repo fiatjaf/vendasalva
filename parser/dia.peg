@@ -25,7 +25,7 @@ block
         fornecedor: n,
         items: c,
         extras: a,
-        total: realTotal
+        total: t || realTotal
       } 
     }
   / _? sc:saida_conta _? { sc.kind = 'saída/conta'; return sc; }
@@ -77,7 +77,8 @@ sep = _? ':' _? / _? '-' _? / _? '|' _? / _? ';' _? / _ 'de' _
 
 compras = f:item r:(newline item)* { return filterItems(f, r) }
 additions = newline _* f:addition r:(newline addition)* { return filterItems(f, r) }
-addition
+addition = _? addition:_addition { return addition }
+_addition
   = '+' _? v:preco { return {value: v} }
   / '+' _? d:name value_sep v:preco { return {value: v, desc: d} }
   / '-' _? v:preco { return {value: -v} }
@@ -128,55 +129,57 @@ item = _* item:_item { return item }
 _item
   = i:quant quant_sep? n:name value_sep v:preco {
       var item = i
-      i.item = n
-      i.value = v
-      return i
+      item.item = n
+      item.value = v
+      return item
     }
   / v:preco value_sep? i:quant quant_sep n:name {
       var item = i
-      i.item = n
-      i.value = v
-      return i
+      item.item = n
+      item.value = v
+      return item
     }
   / v:preco value_sep? n:name quant_sep i:quant {
       var item = i
-      i.item = n
-      i.value = v
-      return i
-    }
-  / n:name quant_sep? i:quant value_sep v:preco {
-      var item = i
-      i.item = n
-      i.value = v
-      return i
-  }
-  / q:value n:name value_sep v:preco {
-      return {
-        item: n,
-        u: 'u',
-        q: q,
-        value: v
-      }
+      item.item = n
+      item.value = v
+      return item
     }
   / i:quant quant_sep n:name value_sep v:preco {
       var item = i
-      i.item = n
-      i.value = v
-      return i
+      item.item = n
+      item.value = v
+      return item
     }
   / v:preco value_sep i:quant n:name {
       var item = i
-      i.item = n
-      i.value = v
-      return i
+      item.item = n
+      item.value = v
+      return item
+    }
+  / v:preco value_sep u:unit quant_sep n:name {
+      return {
+        item: n,
+        u: u,
+        q: 1,
+        value: v
+      }
+    }
+  / v:preco value_sep n:name {
+      return {
+        item: n,
+        u: 'u',
+        q: 1,
+        value: v
+      }
     }
   / v:preco value_sep n:name i:quant {
       var item = i
-      i.item = n
-      i.value = v
-      return i
+      item.item = n
+      item.value = v
+      return item
     }
-  / u:unit _ n:name value_sep v:preco {
+  / u:unit quant_sep n:name value_sep v:preco {
     return {
       item: n,
       u: u,
@@ -192,6 +195,12 @@ _item
       value: v
     }
   }
+  / n:name quant_sep i:quant value_sep v:preco {
+      var item = i
+      item.item = n
+      item.value = v
+      return item
+  }
 
 
 preco
@@ -201,12 +210,18 @@ preco
   / v:value { return parseInt(v*100) }
 
 quant
-  = q:value _? u:unit _ {
+  = q:value _? u:unit _? {
     if (u == 'g') {
       u = 'kg'
       q = q/1000
     }
     return {u: u, q: q}
+  }
+  / q:value {
+    return  {
+      u: 'u',
+      q: q
+    }
   }
   
 quant_sep
@@ -279,3 +294,4 @@ comma = ","
 semicolon = ';'
 newline = "\n"
 any = [^\n]
+

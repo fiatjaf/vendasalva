@@ -22,16 +22,21 @@ saída para conta de luz: 20,00
 
 res = parser.parse test
 
-res[0].should.deep.equal {u: 'kg', q: 2, item: 'maracujá', value: 180, pagamento: 'dinheiro', kind: 'venda'}
-res[1].u.should.equal 'saco'
-res[1].item.should.equal 'feijão'
-res[2].pagamento.should.equal 'débito'
-res[2].value.should.equal 900
-res[3].u.should.equal 'garrafa/700ml'
-res[4].kind.should.equal 'compra'
-res[4].fornecedor.should.equal 'solarius'
-res[4].items[0].item.should.equal 'manjar branco dos deuses'
-res[4].items[0].u.should.equal 'pote'
-res[4].extras.should.deep.equal [{desc: 'frete', value: 5000}, {desc: 'diferença', value: 662600}]
-res[4].total.should.equal 1000000
-res[5].should.deep.equal {kind: 'saída/conta', value: 2000, desc: 'luz'}
+try
+  res[0].should.deep.equal {u: 'kg', q: 2, item: 'maracujá', value: 180, pagamento: 'dinheiro', kind: 'venda'}
+  res[1].u.should.equal 'saco'
+  res[1].item.should.equal 'feijão'
+  res[2].pagamento.should.equal 'débito'
+  res[2].value.should.equal 900
+  res[3].u.should.equal 'garrafa/700ml'
+  res[4].kind.should.equal 'compra'
+  res[4].fornecedor.should.equal 'solarius'
+  res[4].items[0].item.should.equal 'manjar branco dos deuses'
+  res[4].items[0].u.should.equal 'pote'
+  res[4].extras.should.deep.equal [{desc: 'frete', value: 5000}, {desc: 'diferença', value: 662600}]
+  res[4].total.should.equal 1000000
+  res[5].should.deep.equal {kind: 'saída/conta', value: 2000, desc: 'luz'}
+catch e
+  console.log JSON.stringify res, null, 2
+  console.log e
+  throw e
