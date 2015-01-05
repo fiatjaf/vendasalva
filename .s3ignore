@@ -1,0 +1,15 @@
+.git
+.git/*
+.gitignore
+node_modules
+node_modules/*
+*.swo
+*.swp
+*.pyo
+*.pyc
+*.py
+*.coffee
+*.less
+ddoc
+ddoc/*
+*.md

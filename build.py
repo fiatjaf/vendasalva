@@ -55,6 +55,9 @@ def run():
     print 'serving at port 3000'
     SocketServer.TCPServer(("", 3000), SimpleHTTPServer.SimpleHTTPRequestHandler).serve_forever()
 
+def s3_upload():
+    print subprocess.check_output(['s3cmd', 'sync', '--acl-public', '--delete-removed', '--exclude-from', '.s3ignore', './', 's3://vendasalva.com.br/'])
+
 if len(sys.argv) == 1:
     app()
 elif sys.argv[1] == 'parser':
@@ -66,6 +69,9 @@ elif sys.argv[1] == 'upload-ddoc':
     ddoc()
     grammar()
     upload_ddoc()
+elif sys.argv[1] == 'upload-s3':
+    app()
+    s3_upload()
 elif sys.argv[1] == 'run':
     app()
     run()
