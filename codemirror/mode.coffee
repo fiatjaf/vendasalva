@@ -78,7 +78,7 @@ module.exports = ->
       return 'def'
 
     # compra
-    else if S.is(null) and ___.match(/[A-Za-z\u0080-\u00FF0-9 ]+:/i)
+    else if S.is(null) and ___.match(/[A-Za-z\u0080-\u00FF0-9 ]+:\s*$/i)
       ___.eatSpace()
       if ___.eol()
         S.compra = true # not a state, just an indication
@@ -98,7 +98,12 @@ module.exports = ->
       else if ___.skipTo(',') or ___.skipTo(';')
         S.willBe 'post-item'
         return 'variable-2'
-    else if S.is(null) and ___.match(/[A-Za-z\u0080-\u00FF0-9 ]+[;,]/, false)
+    else if S.is(null) and ___.match(/[A-Za-z\u0080-\u00FF0-9 ]+[;,]/, false) # 'banana; 1kg ...'
+      S.willBe 'item' # only to give the correct .was to the next
+      ___.match(/[A-Za-z\u0080-\u00FF0-9 ]+/)
+      S.willBe 'quant_sep'
+      return 'variable-2'
+    else if S.is(null) and ___.match(/[A-Za-z\u0080-\u00FF0-9 ]+:\s*[^\s]/, false) # 'banana: R$ 40'
       S.willBe 'item' # only to give the correct .was to the next
       ___.match(/[A-Za-z\u0080-\u00FF0-9 ]+/)
       S.willBe 'quant_sep'

@@ -168,8 +168,8 @@ _item
   / v:preco value_sep n:name {
       return {
         item: n,
-        u: 'u',
-        q: 1,
+        u: '-',
+        q: '?',
         value: v
       }
     }
@@ -190,8 +190,8 @@ _item
   / n:name value_sep v:preco {
     return {
       item: n,
-      u: 'u',
-      q: 1,
+      u: '-',
+      q: '?',
       value: v
     }
   }
