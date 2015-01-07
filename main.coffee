@@ -56,6 +56,7 @@ theState = ->
       sync: (state, data) ->
         # set callback to be called by the popup window
         window.passDB = (couchURL) ->
+          console.log('got couchdb url from popup: ' + couchURL)
           opened.close()
           syncing = store.sync(couchURL)
           console.log 'replication started'

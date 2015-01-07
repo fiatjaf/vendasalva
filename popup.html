@@ -40,7 +40,7 @@
     'http://auth.vendasalva.com.br/get_credentials',
     {},
     function (db) {
-      if (db)
+      if (db && /[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/.exec(db))
         window.opener.passDB(db)
     }
   )
