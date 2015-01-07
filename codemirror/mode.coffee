@@ -47,7 +47,7 @@ module.exports = ->
           ___.eatSpace()
           return 'number' if ___.match(meas) # '1 pacote de 1 quilo' (ou 'pacote de 1 quilo')
       return 'number' # '1'
-    else if S.is(null) and (___.match(/\d+(,\d+)?/) or ___.match(meas, false))
+    else if S.is(null) and ___.match(/\d+(,\d+)?/)
       S.willBe 'quant'
       return 'number'
     # /quant
@@ -122,8 +122,8 @@ module.exports = ->
           return 0
     return 2
 
-pack = /u(nidades?)?|garrafas?|pencas?|bandejas?|bandejinhas?|vidros?|vdrs?|vds?|latas?|lts?|potes?|pts?|potinhos?|tantos?|punhados?|ramos?|pcts?|pacotes?|sacos?|saquinhos?|scs?|cxs?|caixas?/i
-meas = /kgs?|quilos?|kilos?|gramas?|gs?|mls?|litros?|l/i
-reai = /rea(is|l)|R\$|BRL|cent(avo)?s?/
+pack = /([^A-Za-z\u0080-\u00FF]|\b)(u(nidades?)?|garrafas?|pencas?|bandejas?|bandejinhas?|vidros?|vdrs?|vds?|latas?|lts?|potes?|pts?|potinhos?|tantos?|punhados?|ramos?|pcts?|pacotes?|sacos?|saquinhos?|scs?|cxs?|caixas?)\b/i
+meas = /([^A-Za-z\u0080-\u00FF]|\b)(kgs?|quilos?|kilos?|gramas?|gs?|mls?|litros?|l)\b/i
+reai = /([0-9\b\s]|^)(rea(is|l)|R\$|BRL|cent(avo)?s?)[0-9\b\s]/
 pric = /(R\$ *)?\d+(,\d+)?( *rea(is|l))? *:/
 quan = /\d+(,\d+)?/
