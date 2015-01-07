@@ -152,22 +152,59 @@ vrender = (state) ->
           (h2 {}, 'Caixa')
           (table className: 'table table-bordered table-hover',
             (thead {},
-              (tr className: 'success',
+              (tr className: 'active',
                 (th {})
                 (th {}, 'Saídas')
                 (th {}, 'Entradas')
               )
             )
             (tbody {},
-              (tr {},
-                (td {}, Titulo row.desc)
-                (td {}, if row.value < 0 then 'R$ ' + Reais.fromInteger row.value else null)
-                (td {}, if row.value > 0 then 'R$ ' + Reais.fromInteger row.value else null)
-              ) for row in parsed.caixa
+              (->
+                rows = []
+
+                for caixaPeriod, pn in parsed.caixa.periods
+                  for row in caixaPeriod
+                    if row.value # skip blank
+                      rows.push (tr {},
+                        (td {}, Titulo row.desc)
+                        (td {}, if row.value < 0 then 'R$ ' + Reais.fromInteger row.value else null)
+                        (td {}, if row.value > 0 then 'R$ ' + Reais.fromInteger row.value else null)
+                      )
+
+                  if pn+1 < parsed.caixa.periods.length and # don't show partials for the last period
+                     pn != 0 # don't show partials for the first period
+                    rows.push (tr className: 'info',
+                      (th {},
+                        'Saldo parcial esperado' +
+                        if caixaPeriod.saldo.desc then " (#{caixaPeriod.saldo.desc})" else ''
+                      )
+                      (th {attributes: {colspan: 2}}, 'R$ ' + Reais.fromInteger caixaPeriod.saldo.esperado)
+                    )
+                    rows.push (tr className: 'info',
+                      (th {},
+                        'Saldo parcial real' +
+                        if caixaPeriod.saldo.desc then " (#{caixaPeriod.saldo.desc})" else ''
+                      )
+                      (th {attributes: {colspan: 2}}, 'R$ ' + Reais.fromInteger caixaPeriod.saldo.real)
+                    )
+
+                  else if pn == 0 # for the first period, show one row
+                    rows.push (tr {className: 'success'},
+                     (th {}, 'Saldo inicial')
+                     (th {attributes: {colspan: 2}}, 'R$ ' + Reais.fromInteger caixaPeriod.saldo.real)
+                    )
+
+                return rows
+              )()
             ) if parsed.caixa
             (tfoot {},
-              (tr {},
-                (th {colspan: 3}, 'R$ ' + Reais.fromInteger parsed.caixa.saldo)
+              (tr className: 'success',
+                (th {}, 'Saldo final esperado')
+                (th {attributes: {colspan: 2}}, 'R$ ' + Reais.fromInteger parsed.caixa.final.saldo.esperado)
+              )
+              (tr className: 'success',
+                (th {}, 'Saldo final real')
+                (th {attributes: {colspan: 2}}, 'R$ ' + Reais.fromInteger parsed.caixa.final.saldo.real)
               )
             )
           )
@@ -191,11 +228,32 @@ parse = (rawInput) ->
   compras = []
   contas = []
   comments = []
-  caixa = [{desc: 'Vendas', value: 0}]
-  caixa.saldo = 0
   receita = 0
+
+  caixa =
+    periods: [ # each period is delimited by the occurrence of a 'saldo'
+
+    ]
+    final: [{desc: 'Vendas', value: 0}]
+  caixa.final.saldo =
+    esperado: 0
+    real: 0
+  caixa.addPeriod = ->
+    period = [{desc: 'Vendas', value: 0}]
+    period.saldo =
+      esperado: if caixa.periods.length then caixa.periods[caixa.periods.length-1].saldo.real else 0
+      real: null
+    caixa.periods.push period
+
+  caixa.addPeriod()
+  updateFirstPeriod = false
+  if not facts.length or facts[0].kind != 'saldo'
+    caixa.addPeriod()
+    updateFirstPeriod = true
+
   for fact in facts
     fact.value = parseFloat(fact.value) or 0
+    caixaPeriod = caixa.periods[caixa.periods.length-1]
 
     switch fact.kind
       when 'venda'
@@ -205,9 +263,12 @@ parse = (rawInput) ->
           'Valor pago': 'R$ ' + Reais.fromInteger fact.value
           'Forma de pagamento': fact.pagamento + if fact.x then " (#{fact.x}x)" else ''
         }
-        caixa[0].value += fact.value if fact.pagamento == 'dinheiro'
-        caixa.saldo += fact.value
         receita += fact.value
+
+        caixaPeriod[0].value += fact.value if fact.pagamento == 'dinheiro'
+        caixaPeriod.saldo.esperado += fact.value
+        caixa.final[0].value += fact.value if fact.pagamento == 'dinheiro'
+        caixa.final.saldo.esperado += fact.value
       when 'compra'
         compra = fact
         comprados = compra.items or []
@@ -226,21 +287,52 @@ parse = (rawInput) ->
           'Valor': 'R$ ' + Reais.fromInteger fact.value
         }
       when 'entrada'
-        caixa.push fact
-        caixa.saldo += fact.value
+        caixaPeriod.push fact
+        caixaPeriod.saldo.esperado += fact.value
+        caixa.final.push fact
+        caixa.final.saldo.esperado += fact.value
       when 'saída'
         fact.value = -fact.value
-        caixa.push fact
-        caixa.saldo += fact.value
+        caixaPeriod.push fact
+        caixaPeriod.saldo.esperado += fact.value
+        caixa.final.push fact
+        caixa.final.saldo.esperado += fact.value
       when 'saída/conta'
         fact.value = -fact.value
-        caixa.push fact
-        caixa.saldo += fact.value
+        caixaPeriod.push fact
+        caixaPeriod.saldo.esperado += fact.value
+        caixa.final.push fact
+        caixa.final.saldo.esperado += fact.value
         contas.push {
           'Conta': fact.desc
           'Valor': 'R$ ' + Reais.fromInteger fact.value
         }
+      when 'saldo'
+        caixaPeriod.saldo.real = fact.value
+        caixaPeriod.saldo.desc = fact.desc
+
+        if updateFirstPeriod and caixaPeriod == caixa.periods[1]
+          # if we don't have the initial saldo, assume it is right according to the first time
+          # a saldo is given.
+          caixa.periods[0].saldo.real = caixaPeriod.saldo.real - caixaPeriod.saldo.esperado
+          caixaPeriod.saldo.esperado = caixaPeriod.saldo.real
+
+          # also update the global (final) saldo esperado, as explained in the next if clause
+          caixa.final.saldo.esperado += caixa.periods[0].saldo.real
+
+        else if caixaPeriod == caixa.periods[0]
+          # if this is the initial saldo, update the global (final) saldo esperado
+          # to reflect the value declared to be the initial
+          caixa.final.saldo.esperado += caixaPeriod.saldo.real
+
+        caixa.addPeriod()
       when 'comment' then comments.push fact
+
+    # post processing
+    if facts[facts.length-1].kind != 'saldo'
+      caixa.addPeriod()
+      #caixa.periods[caixa.periods.length-1]
+    caixa.final.saldo.real = caixa.periods[caixa.periods.length-2].saldo.real
 
   vendas: vendas
   compras: compras

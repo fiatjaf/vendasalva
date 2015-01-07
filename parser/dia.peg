@@ -70,8 +70,8 @@ entrada
   / 'entrada'i (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
 
 saldo
-  = 'saldo'i _ name? value_sep? p:preco { return {value: p} }
-  / 'caixa'i _ name? value_sep? p:preco { return {value: p} }
+  = 'saldo'i _ d:name value_sep? p:preco { return {value: p, desc: d} }
+  / 'saldo'i value_sep p:preco { return {value: p} }
 
 sep = _? ':' _? / _? '-' _? / _? '|' _? / _? ';' _? / _ 'de' _
 
