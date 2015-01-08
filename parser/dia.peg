@@ -125,13 +125,21 @@ x
   = n:num _ 'vezes' { return parseInt(n) }
   / n:num _? 'x' { return parseInt(n) }
 
-item = _* item:_item { return item }
+item = _* item:_item _* { return item }
 _item
-  = i:quant quant_sep? n:name value_sep v:preco {
+  = i:quant quant_sep n:name value_sep v:preco {
       var item = i
       item.item = n
       item.value = v
       return item
+    }
+  / q:value _ n:name value_sep v:preco {
+      return {
+        q: q,
+        u: 'u',
+        item: n,
+        value: v
+      }
     }
   / v:preco value_sep? i:quant quant_sep n:name {
       var item = i
@@ -151,19 +159,11 @@ _item
       item.value = v
       return item
     }
-  / v:preco value_sep i:quant n:name {
+  / v:preco value_sep i:quant quant_sep n:name {
       var item = i
       item.item = n
       item.value = v
       return item
-    }
-  / v:preco value_sep u:unit quant_sep n:name {
-      return {
-        item: n,
-        u: u,
-        q: 1,
-        value: v
-      }
     }
   / v:preco value_sep n:name {
       return {
@@ -179,13 +179,11 @@ _item
       item.value = v
       return item
     }
-  / u:unit quant_sep n:name value_sep v:preco {
-    return {
-      item: n,
-      u: u,
-      q: 1,
-      value: v
-    }
+  / n:name quant_sep i:quant value_sep v:preco {
+      var item = i
+      item.item = n
+      item.value = v
+      return item
   }
   / n:name value_sep v:preco {
     return {
@@ -194,12 +192,6 @@ _item
       q: '?',
       value: v
     }
-  }
-  / n:name quant_sep i:quant value_sep v:preco {
-      var item = i
-      item.item = n
-      item.value = v
-      return item
   }
 
 
@@ -210,22 +202,19 @@ preco
   / v:value { return parseInt(v*100) }
 
 quant
-  = q:value _? u:unit _? {
+  = q:value _? u:unit {
     if (u == 'g') {
       u = 'kg'
       q = q/1000
     }
     return {u: u, q: q}
   }
-  / q:value {
-    return  {
-      u: 'u',
-      q: q
-    }
-  }
+  / u:unit { return { u: u, q: 1 } }
+  / q:value { return  { u: 'u', q: q } }
   
 quant_sep
   = _? 'de'i _?
+  / _
   / _? semicolon _?
   / _? comma _?
   
@@ -279,7 +268,8 @@ measure
 reais = 'reais'i / 'real'i / 'R$'i / 'BRL'
 centavos = 'centavo'i 's'i? / 'cent'i 's'i?
 
-name
+name = _* name:_name _* { return name }
+_name
   = l1:letter+ '-' l2:letter+ '-' l3:letter+ { return (l1.join('') + '-' + l2.join('') + '-' + l3.join('')).toLowerCase() }
   / l1:letter+ '-' l2:letter+ { return (l1.join('') + '-' + l2.join('')).toLowerCase() }
   / l:letter+ { return l.join('').trim().toLowerCase() }
