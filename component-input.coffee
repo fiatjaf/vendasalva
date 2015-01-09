@@ -116,7 +116,7 @@ vrender = (state) ->
       (div id: 'facts',
         (div className: 'vendas',
           (h2 {}, 'Vendas')
-          (h3 {}, "Total: R$ #{Reais.fromInteger parsed.receita}")
+          (h3 {}, "Total: " + Reais.fromInteger(parsed.receita, 'R$ '))
           (vrenderTable
             style: 'info'
             data: parsed.vendas
@@ -134,9 +134,9 @@ vrender = (state) ->
                 columns: ['Quant', 'Produto', 'Preço total', 'Preço unitário']
               )
               (div {},
-                "+ #{Titulo extra.desc}: R$ #{Reais.fromInteger extra.value}"
+                "+ #{Titulo extra.desc}: " + Reais.fromInteger(extra.value, 'R$ ')
               ) for extra in compra.extras if compra.extras
-              (h4 {}, "Total: R$ #{Reais.fromInteger compra.total}") if compra.total
+              (h4 {}, "Total: " + Reais.fromInteger(compra.total, 'R$ ')) if compra.total
             ) for compra in parsed.compras
           )
         ) if parsed.compras.length
@@ -167,8 +167,8 @@ vrender = (state) ->
                     if row.value # skip blank
                       rows.push (tr {},
                         (td {}, Titulo row.desc)
-                        (td {}, if row.value < 0 then 'R$ ' + Reais.fromInteger row.value else null)
-                        (td {}, if row.value > 0 then 'R$ ' + Reais.fromInteger row.value else null)
+                        (td {}, if row.value < 0 then Reais.fromInteger(row.value, 'R$ ') else null)
+                        (td {}, if row.value > 0 then Reais.fromInteger(row.value, 'R$ ') else null)
                       )
 
                   if pn+1 < parsed.caixa.periods.length and # don't show partials for the last period
@@ -178,20 +178,20 @@ vrender = (state) ->
                         'Saldo parcial esperado' +
                         if caixaPeriod.saldo.desc then " (#{caixaPeriod.saldo.desc})" else ''
                       )
-                      (th {attributes: {colspan: 2}}, 'R$ ' + Reais.fromInteger caixaPeriod.saldo.esperado)
+                      (th {attributes: {colspan: 2}}, Reais.fromInteger(caixaPeriod.saldo.esperado, 'R$ '))
                     )
                     rows.push (tr className: 'info',
                       (th {},
                         'Saldo parcial real' +
                         if caixaPeriod.saldo.desc then " (#{caixaPeriod.saldo.desc})" else ''
                       )
-                      (th {attributes: {colspan: 2}}, 'R$ ' + Reais.fromInteger caixaPeriod.saldo.real)
+                      (th {attributes: {colspan: 2}}, Reais.fromInteger(caixaPeriod.saldo.real, 'R$ '))
                     )
 
                   else if pn == 0 # for the first period, show one row
                     rows.push (tr {className: 'success'},
                      (th {}, 'Saldo inicial')
-                     (th {attributes: {colspan: 2}}, 'R$ ' + Reais.fromInteger caixaPeriod.saldo.real)
+                     (th {attributes: {colspan: 2}}, Reais.fromInteger(caixaPeriod.saldo.real, 'R$ '))
                     )
 
                 return rows
@@ -200,11 +200,11 @@ vrender = (state) ->
             (tfoot {},
               (tr className: 'success',
                 (th {}, 'Saldo final esperado')
-                (th {attributes: {colspan: 2}}, 'R$ ' + Reais.fromInteger parsed.caixa.final.saldo.esperado)
+                (th {attributes: {colspan: 2}}, Reais.fromInteger(parsed.caixa.final.saldo.esperado, 'R$ '))
               )
               (tr className: 'success',
                 (th {}, 'Saldo final real')
-                (th {attributes: {colspan: 2}}, 'R$ ' + Reais.fromInteger parsed.caixa.final.saldo.real)
+                (th {attributes: {colspan: 2}}, Reais.fromInteger(parsed.caixa.final.saldo.real, 'R$ '))
               )
             )
           )
@@ -260,7 +260,7 @@ parse = (rawInput) ->
         vendas.push {
           'Quant': fact.q
           'Produto': "#{Titulo fact.item} (#{fact.u})"
-          'Valor pago': 'R$ ' + Reais.fromInteger fact.value
+          'Valor pago': Reais.fromInteger(fact.value, 'R$ ')
           'Forma de pagamento': fact.pagamento + if fact.x then " (#{fact.x}x)" else ''
         }
         receita += fact.value
@@ -277,14 +277,14 @@ parse = (rawInput) ->
           compra.items.push {
             'Quant': item.q
             'Produto': "#{Titulo item.item} (#{item.u})"
-            'Preço total': 'R$ ' + Reais.fromInteger item.value
-            'Preço unitário': 'R$ ' + Reais.fromInteger item.value/item.q
+            'Preço total': Reais.fromInteger(item.value, 'R$ ')
+            'Preço unitário': Reais.fromInteger(item.value/item.q, 'R$ ')
           }
         compras.push compra
       when 'conta'
         contas.push {
           'Conta': fact.desc
-          'Valor': 'R$ ' + Reais.fromInteger fact.value
+          'Valor': Reais.fromInteger(fact.value, 'R$ ')
         }
       when 'entrada'
         caixaPeriod.push fact
@@ -305,7 +305,7 @@ parse = (rawInput) ->
         caixa.final.saldo.esperado += fact.value
         contas.push {
           'Conta': fact.desc
-          'Valor': 'R$ ' + Reais.fromInteger fact.value
+          'Valor': Reais.fromInteger(fact.value, 'R$ ')
         }
       when 'saldo'
         caixaPeriod.saldo.real = fact.value
@@ -328,11 +328,10 @@ parse = (rawInput) ->
         caixa.addPeriod()
       when 'comment' then comments.push fact
 
-    # post processing
-    if facts[facts.length-1].kind != 'saldo'
-      caixa.addPeriod()
-      #caixa.periods[caixa.periods.length-1]
-    caixa.final.saldo.real = caixa.periods[caixa.periods.length-2].saldo.real
+  # post processing
+  if facts.length and facts[facts.length-1].kind != 'saldo'
+    caixa.addPeriod()
+  caixa.final.saldo.real = caixa.periods[caixa.periods.length-2].saldo.real
 
   vendas: vendas
   compras: compras

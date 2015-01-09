@@ -215,7 +215,7 @@ vrenderItem = (state) ->
                , event.day)
               )
               (td {}, '' + event.q + ' ' + event.u)
-              (td {}, 'R$ ' + Reais.fromInteger event.p + ' por ' + event.u)
+              (td {}, Reais.fromInteger(event.p, 'R$ ') + ' por ' + event.u)
               (td {}, if event.compra then '(compra)' else '')
             ) for event in state.itemData.events
           )
