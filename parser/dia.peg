@@ -13,9 +13,9 @@
   }
 }
 
-start = _? i:block? b:(blank* block)* blank* !. { return filterItems(i, b) }
+start = _? i:block? b:(blank block)* _? blank? !. { return filterItems(i, b) }
 block
-  = _? n:name colon newline c:compras a:additions? t:total? blank* {
+  = _? n:name colon newline c:compras a:additions? t:total? _? newline? {
       a = a ? a : [];
       var realTotal = sumValues(c) + sumValues(a);
       if (t && t != realTotal) a.push({value: (t - realTotal), desc: 'diferença'})
@@ -36,28 +36,19 @@ block
   / _? v:venda _? { v.kind = 'venda'; return v; }
   / _? a:any+ _? { return {kind: 'comment', note: a.join('')} }
   
+_saida_keyword = 'sa'i [ií]i 'da'i / 'retirada'i
+_conta_keyword = 'pag'i ('amento'i/'o'i)? / 'conta'i / 'boleto'i / 'fatura'i / 'taxa'i
 saida_conta
-  = 'sa'i [ií]i 'da'i _ 'para'i sep? _ c:conta { return c }
-  / 'sa'i [ií]i 'da'i _ 'p/'i sep? _ c:conta { return c }
-  / 'sa'i [ií]i 'da'i (_ name)? _ sep? c:conta { return c }
-  / 'retirada'i _ 'para'i sep? _ c:conta { return c }
-  / 'retirada'i _ 'p/'i sep? _ c:conta { return c }
-  / 'retirada'i (_ name)? sep? _ c:conta { return c }
+  = _saida_keyword _ para sep? _ c:conta { return c }
+  / _saida_keyword (_ name)? _ sep? c:conta { return c }
+  / _saida_keyword _ sep? c:conta { return c }
   
 conta
-  = 'pag'i ('amento'i/'o'i)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'conta'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'boleto'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'fatura'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'taxa'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  
+  = _conta_keyword sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+
 saida
-  = 'sa'i [ií]i 'da'i _ 'para'i sep? e:(name value_sep) p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'sa'i [ií]i 'da'i _ 'p/'i sep? e:(name value_sep) p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'sa'i [ií]i 'da'i (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'retirada'i _ 'para'i sep? e:(name value_sep) p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'retirada'i _ 'p/'i sep? e:(name value_sep) p:preco { return {value: p, desc: e ? e[0] : ''} }
-  / 'retirada'i (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
+  = _saida_keyword _ para sep? e:(name value_sep) p:preco { return {value: p, desc: e ? e[0] : ''} }
+  / _saida_keyword (_ name)? sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
 
 entrada
   = 'entrou'i _ 'do'i sep? e:(name value_sep)? p:preco { return {value: p, desc: e ? e[0] : ''} }
@@ -88,16 +79,27 @@ total
   / newline _? 'total'i _? colon _? v:preco { return v }
 
 venda
+  = v:_venda n:note { v.note = v.note ? v.note + '; ' + n : n; return v }
+  / v:_venda { return v }
+_venda
+  = v:__venda _ 'fiado'i _ para _ n:name { v.pagamento = null; v.cliente = n; return v }
+  / v:__venda _ 'fiado'i { v.pagamento = null; return v }
+  / v:__venda _ (para _)? ('na'i _)? 'conta'i _ ('de'i _)? n:name { v.pagamento = null; v.cliente = n; return v }
+  / v:__venda _ (para _)? n:name { v.cliente = n; return v }
+  / v:__venda { return v }
+__venda
   = i:item _ 'no'i _ p:pag { i.pagamento = p; return i }
   / i:item _ 'em'i _ p:pag { i.pagamento = p; return i }
-  / i:item value_sep p:pag { i.pagamento = p; return i }
+  / i:item _ 'em'i _ x:x _ 'no'i _ p:pag { i.x = x; i.pagamento = p; return i }
+  / i:item _ 'de'i _ x:x _ 'no'i _ p:pag { i.x = x; i.pagamento = p; return i }
   / i:item _ 'de'i _ x:x { i.pagamento = 'crédito'; i.x = x; return i } 
   / i:item _ 'em'i _ x:x { i.pagamento = 'crédito'; i.x = x; return i } 
-  / i:item value_sep x:x { i.pagamento = 'crédito'; i.x = x; return i }
-  / i:item value_sep p:pag value_sep x:x { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
-  / i:item value_sep x:x value_sep p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
-  / i:item _ 'em'i _ x:x _ 'no'i _ p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
-  / i:item _ 'de'i _ x:x _ 'no'i _ p:pag { i.x = x; i.p = p == 'cartão' ? 'crédito' : p; return i }
+  / i:item _? colon _? p:pag { i.pagamento = p; return i }
+  / i:item _? colon _? p:pag { i.pagamento = p; return i }
+  / i:item _? colon _? x:x _ 'no'i _ p:pag { i.x = x; i.p = p; return i }
+  / i:item _? colon _? x:x _ 'no'i _ p:pag { i.x = x; i.p = p; return i }
+  / i:item _? colon _? x:x { i.pagamento = 'crédito'; i.x = x; return i } 
+  / i:item _? colon _? x:x { i.pagamento = 'crédito'; i.x = x; return i } 
   / i:item { i.pagamento = 'dinheiro'; return i }
 pag
   = 'crédito'i {return 'crédito'}
@@ -125,69 +127,80 @@ x
   = n:num _ 'vezes' { return parseInt(n) }
   / n:num _? 'x' { return parseInt(n) }
 
-item = _* item:_item _* { return item }
+item = _* item:_item { if (!item.note) delete item.note; return item }
+_itemname = n:name c:note? { return {name: n, note: c} }
 _item
-  = i:quant quant_sep n:name value_sep v:preco {
+  = i:quant quant_sep n:_itemname value_sep v:preco {
       var item = i
-      item.item = n
+      item.item = n.name
+      item.note = n.note
       item.value = v
       return item
     }
-  / q:value _ n:name value_sep v:preco {
+  / q:value _ n:_itemname value_sep v:preco {
       return {
         q: q,
         u: 'u',
-        item: n,
+        item: n.name,
+        note: n.note,
         value: v
       }
     }
-  / v:preco value_sep? i:quant quant_sep n:name {
+  / v:preco value_sep? i:quant quant_sep n:_itemname {
       var item = i
-      item.item = n
+      item.item = n.name
+      item.note = n.note
       item.value = v
       return item
     }
-  / v:preco value_sep? n:name quant_sep i:quant {
+  / v:preco value_sep? n:_itemname quant_sep i:quant {
       var item = i
-      item.item = n
+      item.item = n.name
+      item.note = n.note
       item.value = v
       return item
     }
-  / i:quant quant_sep n:name value_sep v:preco {
+  / i:quant quant_sep n:_itemname value_sep v:preco {
       var item = i
-      item.item = n
+      item.item = n.name
+      item.note = n.note
       item.value = v
       return item
     }
-  / v:preco value_sep i:quant quant_sep n:name {
+  / v:preco value_sep i:quant quant_sep n:_itemname {
       var item = i
-      item.item = n
+      item.item = n.name
+      item.note = n.note
       item.value = v
       return item
     }
-  / v:preco value_sep n:name {
+  / v:preco value_sep n:_itemname {
       return {
-        item: n,
+        item: n.name,
+        note: n.note,
         u: '-',
         q: '?',
         value: v
       }
     }
-  / v:preco value_sep n:name i:quant {
+  / v:preco value_sep n:_itemname i:quant {
       var item = i
-      item.item = n
+      item.item = n.name
+      item.note = n.note
       item.value = v
       return item
     }
-  / n:name quant_sep i:quant value_sep v:preco {
+  / n:_itemname quant_sep i:quant value_sep v:preco {
       var item = i
-      item.item = n
+      item.item = n.name
+      item.note = n.note
       item.value = v
       return item
   }
-  / n:name value_sep v:preco {
+  / n:_itemname value_sep v:preco {
     return {
-      item: n,
+      item: n.name,
+      note: n.note,
       u: '-',
       q: '?',
       value: v
@@ -268,17 +281,20 @@ measure
 reais = 'reais'i / 'real'i / 'R$'i / 'BRL'
 centavos = 'centavo'i 's'i? / 'cent'i 's'i?
 
+note = _* '(' note:name ')' _* { return note }
 name = _* name:_name _* { return name }
 _name
   = l1:letter+ '-' l2:letter+ '-' l3:letter+ { return (l1.join('') + '-' + l2.join('') + '-' + l3.join('')).toLowerCase() }
   / l1:letter+ '-' l2:letter+ { return (l1.join('') + '-' + l2.join('')).toLowerCase() }
   / l:letter+ { return l.join('').trim().toLowerCase() }
-letter = [A-Za-z\u0080-\u00FF0-9 ]i
+letter = [A-Za-z\u0080-\u00FF0-9 .]i
 value = n:num+ { return parseFloat(n.join('').replace(',', '.')) }
 num = [,0-9]
 space = " "
-blank = [\n ]
+blank = _? newline [\n ]*
 _ = space+
+para = 'para'i / 'p/'i / 'pra'i
+nao = 'não'i / 'nao'i / 'ñ'i
 colon = ":"
 comma = ","
 semicolon = ';'
