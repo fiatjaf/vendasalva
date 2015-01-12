@@ -120,7 +120,7 @@ vrender = (state) ->
           (vrenderTable
             style: 'info'
             data: parsed.vendas
-            columns: ['Quant','Produto','Valor pago','Forma de pagamento']
+            columns: ['Quant','Produto','Valor','Pagamento']
           )
         ) if parsed.vendas.length
         (div className: 'compras',
@@ -171,7 +171,7 @@ vrender = (state) ->
                         (td {}, if row.value > 0 then Reais.fromInteger(row.value, 'R$ ') else null)
                       )
 
-                  if pn+1 < parsed.caixa.periods.length and # don't show partials for the last period
+                  if pn+2 < parsed.caixa.periods.length and # don't show partials for the last period
                      pn != 0 # don't show partials for the first period
                     rows.push (tr className: 'info',
                       (th {},
@@ -257,18 +257,20 @@ parse = (rawInput) ->
 
     switch fact.kind
       when 'venda'
+        fact.pagamento = if not fact.pagamento then '-' else fact.pagamento
         vendas.push {
           'Quant': fact.q
           'Produto': "#{Titulo fact.item} (#{fact.u})"
-          'Valor pago': Reais.fromInteger(fact.value, 'R$ ')
-          'Forma de pagamento': fact.pagamento + if fact.x then " (#{fact.x}x)" else ''
+          'Valor': Reais.fromInteger(fact.value, 'R$ ')
+          'Pagamento': fact.pagamento + if fact.x then " (#{fact.x}x)" else ''
+          '_title': (if fact.note then fact.note + ' ' else '') + if fact.cliente then "(cliente: #{fact.cliente})" else ''
         }
         receita += fact.value
-
-        caixaPeriod[0].value += fact.value if fact.pagamento == 'dinheiro'
-        caixaPeriod.saldo.esperado += fact.value
-        caixa.final[0].value += fact.value if fact.pagamento == 'dinheiro'
-        caixa.final.saldo.esperado += fact.value
+        if fact.pagamento == 'dinheiro'
+          caixaPeriod[0].value += fact.value
+          caixaPeriod.saldo.esperado += fact.value
+          caixa.final[0].value += fact.value
+          caixa.final.saldo.esperado += fact.value
       when 'compra'
         compra = fact
         comprados = compra.items or []

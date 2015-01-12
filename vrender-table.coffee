@@ -12,7 +12,7 @@ module.exports = (tableDefinition) ->
       )
     )
     (tbody {},
-      (tr {},
+      (tr {attributes: {title: row['_title']} if '_title' of row},
         (td {},
           "#{row[col]}" or ''
         ) for col in columns
