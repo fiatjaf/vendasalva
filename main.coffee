@@ -7,6 +7,16 @@ store            = require './store.coffee'
 vrenderTable     = require './vrender-table.coffee'
 Input            = require './component-input.coffee'
 
+Offline.options = {
+  checks:
+    image:
+      url: 'https://secure.gravatar.com/avatar/b760f503c84d1bf47322f401066c753f?d=blank&s=20'
+    active: 'image'
+  checkOnLoad: true
+  interceptRequests: false
+  requests: false
+}
+
 {div, span, pre, nav,
  small, i, p, a, button,
  h1, h2, h3, h4,
@@ -18,6 +28,23 @@ Input            = require './component-input.coffee'
 setDay = (state, day) ->
   state.InputState.customHandlers.updateDay()(day)
   state.activeTab.set 'Input'
+
+sync = ->
+  lastSync = localStorage.getItem 'lastSync'
+  if not lastSync or parseInt(lastSync) + 3600 < parseInt(Date.now()/1000)
+    # sync once an hour
+    localStorage.setItem 'lastSync', parseInt(Date.now()/1000)
+    couchURL = localStorage.getItem 'remoteCouch'
+    if not couchURL
+      console.log 'no couchURL, will not sync'
+      return
+    console.log 'got couchURL from localStorage, will sync: ' + couchURL
+    syncing = store.sync(couchURL)
+    console.log 'replication started'
+    syncing.on 'change', (info) -> console.log 'change', info
+    syncing.on 'error', (info) -> console.log 'error', info
+    syncing.on 'complete', (info) ->
+      console.log 'replication complete', info
 
 theState = ->
   state = hg.state
@@ -53,25 +80,22 @@ theState = ->
         if results.length
           state.searchResults.set results
           state.activeTab.set 'SearchResults'
-      sync: (state, data) ->
+      getRemoteCouch: (state, data) ->
         # set callback to be called by the popup window
         window.passDB = (couchURL) ->
+          # when called, this callback will save the remote couch url
+          # so it can later be used by our automatic sync process
           console.log('got couchdb url from popup: ' + couchURL)
+          localStorage.setItem('remoteCouch', couchURL)
           opened.close()
-          syncing = store.sync(couchURL)
-          console.log 'replication started'
-          syncing.on 'change', (info) -> console.log 'change', info
-          syncing.on 'error', (info) -> console.log 'error', info
-          syncing.on 'complete', (info) ->
-            console.log 'replication complete', info
-
+          sync()
+ 
         # open the popup
         opened = window.open(
           '/popup.html',
           '_blank',
           'height=400, width=550'
         )
-
     customHandlers: hg.varhash {}
 
   state.customHandlers.put('setDay', hg.value setDay.bind null, state)
@@ -94,7 +118,7 @@ vrenderMain = (state) ->
         (div className: 'navbar-header',
           (button
             className: 'btn btn-default'
-            'ev-click': hg.sendClick state.channels.sync
+            'ev-click': hg.sendClick state.channels.getRemoteCouch
           , 'SYNC')
         )
         (div {},
@@ -229,6 +253,15 @@ state = theState()
 # startup functions
 initialDay = date.format(date.parseDate(location.hash.substr(1), 'yyyy-MM-dd') or new Date, 'yyyy-MM-dd')
 state.customHandlers.setDay()(initialDay)
+
+# listeners
+Offline.on 'up', sync
+repeat = (something) ->
+  something()
+  setTimeout ->
+    repeat something
+  , 3600000
+repeat sync
 
 tabs =
   'Input': 'Input'
