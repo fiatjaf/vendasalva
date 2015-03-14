@@ -29,9 +29,9 @@ setDay = (state, day) ->
   state.InputState.customHandlers.updateDay()(day)
   state.activeTab.set 'Input'
 
-sync = ->
+sync = (force=false) ->
   lastSync = localStorage.getItem 'lastSync'
-  if not lastSync or parseInt(lastSync) + 3600 < parseInt(Date.now()/1000)
+  if force or not lastSync or parseInt(lastSync) + 3600 < parseInt(Date.now()/1000)
     # sync once an hour
     localStorage.setItem 'lastSync', parseInt(Date.now()/1000)
     couchURL = localStorage.getItem 'remoteCouch'
@@ -45,6 +45,24 @@ sync = ->
     syncing.on 'error', (info) -> console.log 'error', info
     syncing.on 'complete', (info) ->
       console.log 'replication complete', info
+
+getRemoteCouch = ->
+  # set callback to be called by the popup window
+  window.passDB = (couchURL) ->
+    # when called, this callback will save the remote couch url
+    # so it can later be used by our automatic sync process
+    console.log('got couchdb url from popup: ' + couchURL)
+    localStorage.setItem('remoteCouch', couchURL)
+    opened.close()
+    sync()
+
+  # open the popup
+  opened = window.open(
+    '/popup.html',
+    '_blank',
+    'height=400, width=550'
+  )
+
 
 theState = ->
   state = hg.state
@@ -80,22 +98,8 @@ theState = ->
         if results.length
           state.searchResults.set results
           state.activeTab.set 'SearchResults'
-      getRemoteCouch: (state, data) ->
-        # set callback to be called by the popup window
-        window.passDB = (couchURL) ->
-          # when called, this callback will save the remote couch url
-          # so it can later be used by our automatic sync process
-          console.log('got couchdb url from popup: ' + couchURL)
-          localStorage.setItem('remoteCouch', couchURL)
-          opened.close()
-          sync()
- 
-        # open the popup
-        opened = window.open(
-          '/popup.html',
-          '_blank',
-          'height=400, width=550'
-        )
+      handleSync: ->
+        if localStorage.getItem 'remoteCouch' then sync(true) else getRemoteCouch()
     customHandlers: hg.varhash {}
 
   state.customHandlers.put('setDay', hg.value setDay.bind null, state)
@@ -118,7 +122,7 @@ vrenderMain = (state) ->
         (div className: 'navbar-header',
           (button
             className: 'btn btn-default'
-            'ev-click': hg.sendClick state.channels.getRemoteCouch
+            'ev-click': hg.sendClick state.channels.handleSync
           , 'SYNC')
         )
         (div {},

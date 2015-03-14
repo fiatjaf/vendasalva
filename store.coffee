@@ -47,7 +47,7 @@ class Store
     return syncinc
 
   listDays: ->
-    @pouch.query('vendasalva/main',
+    @pouch.query('vendasalva/summable',
       startkey: ['receita', null]
       endkey: ['receita', {}]
       reduce: false
@@ -95,7 +95,7 @@ class Store
     )
 
   grabItemData: (itemName) ->
-    @pouch.query('vendasalva/main',
+    @pouch.query('vendasalva/countable',
       startkey: ['item', itemName, {}]
       endkey: ['item', itemName, null]
       descending: true
@@ -149,13 +149,30 @@ class Store
     )
 
   listItems: ->
-    @pouch.query('vendasalva/main',
+    @pouch.query('vendasalva/countable',
       startkey: ['item', null]
       endkey: ['item', {}]
       reduce: true
       group_level: 2
     ).catch(log).then((res) ->
       res.rows.map (row) -> row.key[1]
+    )
+
+  receitas: (granularity, since...) ->
+    group_level = {
+      'day': 5
+      'week': 4
+      'month': 3
+      'year': 2
+    }[granularity]
+    since = since or null
+    @pouch.query('vendasalva/summable',
+      startkey: ['receita'].concat since
+      endkey: ['receita'].concat(since).concat {}
+      reduce: true
+      group_level: group_level
+    ).catch(log).then((res) ->
+      res.rows
     )
 
   searchItem: (q) -> @itemsidx.search q

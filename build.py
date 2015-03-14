@@ -10,10 +10,13 @@ def parser():
     subprocess.call(['./node_modules/.bin/pegjs', '-e', 'parser', 'parser/dia.peg', 'parser/parser.js'])
     with open('parser/parser.js') as f:
         parser = f.read()
-    mapfun = subprocess.check_output(['coffee', '--print', '--bare', '--compile', 'ddoc/views/main/map.coffee'])
-    mapfun = mapfun.replace('~ import parser ~', parser)
-    with open('ddoc/views/main/map.js', 'w') as f:
-        f.write(mapfun)
+
+    # insert the whole grammar inside the map functions
+    for mapfunpath in ['countable', 'summable']:
+        mapfun = subprocess.check_output(['coffee', '--print', '--bare', '--compile', 'ddoc/views/' + mapfunpath + '/map.coffee'])
+        mapfun = mapfun.replace('~ import parser ~', parser)
+        with open('ddoc/views/' + mapfunpath + '/map.js', 'w') as f:
+            f.write(mapfun)
 
 def grammar():
     with open('parser/dia.peg') as s:

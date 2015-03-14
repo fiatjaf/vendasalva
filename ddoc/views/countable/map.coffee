@@ -40,5 +40,3 @@
             u: item.u
             compra: true
           }
-
-  emit ['receita', year, month, week, day], receita
