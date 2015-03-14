@@ -150,6 +150,13 @@ vrenderMain = (state) ->
                 'ev-click': hg.sendClick state.channels.changeTab, 'Input'
               , 'Lançamentos de ' + prettydate)
             )
+            (li className: ('active' if state.activeTab == 'Gráficos') or '',
+              (a
+                href: '#'
+                value: 'Gráficos'
+                'ev-click': hg.sendClick state.channels.changeTab, 'Gráficos'
+              , 'Gráficos')
+            )
             (li className: ('active' if state.activeTab == 'Dias') or '',
               (a
                 href: '#'
@@ -270,6 +277,7 @@ repeat sync
 tabs =
   'Input': 'Input'
   'Dias': vrenderDias
+  'Gráficos': require './vrender-graficos.coffee'
   'SearchResults': vrenderSearchResults
   'Item': vrenderItem
 
