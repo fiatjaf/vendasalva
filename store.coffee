@@ -43,7 +43,9 @@ class Store
 
   sync: (to) ->
     syncinc = @pouch.sync(to)
-    syncinc.on 'complete', (info) => @afterSyncHook info
+    syncinc.on 'complete', (info) =>
+      @afterSyncHook info
+      @pouch.compact().then(-> console.log 'compacted database')
     return syncinc
 
   listDays: ->
