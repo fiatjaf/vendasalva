@@ -50,6 +50,12 @@ checkLocalCache = (state, day, doc) ->
   return raw
 
 inputTextChanged = (state, cmData) ->
+  # only react to big events (newline, big deletions, multiline pastes)
+  if cmData.ev
+    ev = cmData.ev[0]
+    if ev.text.length < 2 and ev.removed.length < 2
+      return
+
   activeDay = state.activeDay()
   rawInput = cmData.cm.getValue()
   return if rawInput == state.rawInput()
@@ -108,7 +114,10 @@ vrender = (state) ->
           'ev-click': hg.sendClick state.channels.saveInputText
         , 'Salvar')
         (new CodeMirrorWidget(state.rawInput, {
-          'ev-change': state.customHandlers.inputTextChanged
+          'ev-changes': state.customHandlers.inputTextChanged
+          'ev-blur': state.customHandlers.inputTextChanged
+          'ev-scroll': state.customHandlers.inputTextChanged
+          'ev-focus': state.customHandlers.inputTextChanged
         }))
       )
     )
