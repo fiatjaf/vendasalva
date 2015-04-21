@@ -1,4 +1,7 @@
+require 'setimmediate'
+
 hg               = require 'mercury'
+Promise          = require 'lie'
 Reais            = require 'reais'
 Titulo           = require('titulo').toLaxTitleCase
 date             = require 'date-extended'
@@ -76,7 +79,7 @@ theState = ->
       receita: hg.value 0
     daysList: hg.value []
     searchResults: hg.value []
-    itemData: hg.value {}
+    forcedSearchValue: hg.value ''
 
     InputState: Input()
 
@@ -88,18 +91,22 @@ theState = ->
           state.activeTab.set 'Dias'
         )
       goToDay: (state, data) -> setDay state, data # data is the day itself, as a string
-      showItemData: (state, data) ->
-        store.grabItemData(data).then((itemData) ->
-          state.itemData.set itemData
-          state.activeTab.set 'Item'
-        )
       search: (state, data) ->
+        state.forcedSearchValue.set ''
         results = store.searchItem data.term
         if results.length
-          state.searchResults.set results
-          state.activeTab.set 'SearchResults'
+          if results.length < 7
+            Promise.all((store.grabItemData i.ref for i in results)).then((items) ->
+              state.searchResults.set items
+              state.activeTab.set 'SearchResults'
+            )
+          else
+            state.searchResults.set results
+            state.activeTab.set 'SearchResults'
+      forceSearch: (state, data) -> state.forcedSearchValue.set data
       handleSync: ->
         if localStorage.getItem 'remoteCouch' then sync(true) else getRemoteCouch()
+
     customHandlers: hg.varhash {}
 
   state.customHandlers.put('setDay', hg.value setDay.bind null, state)
@@ -116,6 +123,15 @@ vrenderMain = (state) ->
     prettydate = 'hoje'
   prettydate = date.format(activeDate, 'dd/MM')
 
+  class ClickToSearchHook
+    constructor: (@value) ->
+    hook: (elem, propName) ->
+      if @value
+        setImmediate =>
+          elem.value = @value
+          inputEvent = new Event 'input'
+          elem.dispatchEvent inputEvent
+
   (div id: 'main',
     (nav className: 'navbar navbar-default',
       (div className: 'container',
@@ -126,13 +142,17 @@ vrenderMain = (state) ->
           , 'SYNC')
         )
         (div {},
-          (form className: 'navbar-form navbar-left',
+          (form
+            'ev-submit': hg.sendSubmit state.channels.search
+            className: 'navbar-form navbar-left'
+          ,
             (div className: 'form-group', style: {display: 'inline'},
               (div className: 'input-group',
                 (input
                   'ev-input': hg.sendChange state.channels.search
                   name: 'term'
                   type: 'text'
+                  value: new ClickToSearchHook state.forcedSearchValue
                   attributes:
                     placeholder: 'Procurar produtos'
                 )
@@ -150,12 +170,12 @@ vrenderMain = (state) ->
                 'ev-click': hg.sendClick state.channels.changeTab, 'Input'
               , 'Lançamentos de ' + prettydate)
             )
-            (li className: ('active' if state.activeTab == 'Gráficos') or '',
+            (li className: ('active' if state.activeTab == 'Resumo') or '',
               (a
                 href: '#'
-                value: 'Gráficos'
-                'ev-click': hg.sendClick state.channels.changeTab, 'Gráficos'
-              , 'Gráficos')
+                value: 'Resumo'
+                'ev-click': hg.sendClick state.channels.changeTab, 'Resumo'
+              , 'Resumo')
             )
             (li className: ('active' if state.activeTab == 'Dias') or '',
               (a
@@ -178,9 +198,55 @@ vrenderSearchResults = (state) ->
     (li {},
       (a
         href: '#'
-        'ev-click': hg.sendClick state.channels.showItemData, r.ref
+        'ev-click': hg.sendClick state.channels.forceSearch, r.ref
       , r.ref)
-    ) for r in state.searchResults
+    ) for r in state.searchResults if state.searchResults.length >= 7
+    (vrenderItem state, item) for item in state.searchResults if state.searchResults.length < 7
+  )
+
+vrenderItem = (state, itemData) ->
+  (div className: 'item',
+    #(div {},
+    #  (div className: 'col-md-3',
+    #    (div className: 'display-box',
+    #      (h3 {className: 'box-label'}, 'EM ESTOQUE')
+    #      (h2 {className: 'box-value'}, '' + itemData.stock)
+    #    ) if itemData.stock
+    #  )
+    #  (div className: 'col-md-3',
+    #    (div className: 'display-box',
+    #      (h3 {className: 'box-label'}, 'R$')
+    #      (h2 {className: 'box-value'}, Reais.fromInteger itemData.price)
+    #    ) if itemData.price
+    #  )
+    #)
+    (h1 className: 'col-md-4', Titulo itemData.name)
+    (div className: 'col-md-8',
+      (table className: 'events table table-stripped table-bordered table-hover',
+        (thead {},
+          (tr {},
+            (th {}, 'Dia')
+            (th {}, 'Q')
+            (th {}, 'R$')
+            (th {})
+          )
+        )
+        (tbody {},
+          (tr className: (if event.compra then 'success' else ''),
+            (td {},
+             (a
+               href: "##{event.id}"
+               value: event.id
+               'ev-click': hg.sendClick state.channels.goToDay, event.id
+             , event.day)
+            )
+            (td {}, '' + event.q + ' ' + event.u)
+            (td {}, Reais.fromInteger(event.p, 'R$ ') + ' por ' + event.u)
+            (td {}, if event.compra then '(compra)' else '')
+          ) for event in itemData.events
+        )
+      )
+    )
   )
 
 vrenderDias = (state) ->
@@ -214,51 +280,6 @@ vrenderDias = (state) ->
     )
   )
 
-vrenderItem = (state) ->
-  (div id: 'item',
-    (h1 {}, Titulo state.itemData.name)
-    (div {},
-      (div className: 'col-md-3',
-        (div className: 'display-box',
-          (h3 {className: 'box-label'}, 'EM ESTOQUE')
-          (h2 {className: 'box-value'}, '' + state.itemData.stock)
-        ) if state.itemData.stock
-      )
-      (div className: 'col-md-3',
-        (div className: 'display-box',
-          (h3 {className: 'box-label'}, 'R$')
-          (h2 {className: 'box-value'}, Reais.fromInteger state.itemData.price)
-        ) if state.itemData.price
-      )
-      (div className: 'col-md-6',
-        (table id: 'events', className: 'table table-stripped table-bordered table-hover',
-          (thead {},
-            (tr {},
-              (th {}, 'Dia')
-              (th {}, 'Q')
-              (th {}, 'R$')
-              (th {})
-            )
-          )
-          (tbody {},
-            (tr className: (if event.compra then 'success' else ''),
-              (td {},
-               (a
-                 href: "##{event.id}"
-                 value: event.id
-                 'ev-click': hg.sendClick state.channels.goToDay, event.id
-               , event.day)
-              )
-              (td {}, '' + event.q + ' ' + event.u)
-              (td {}, Reais.fromInteger(event.p, 'R$ ') + ' por ' + event.u)
-              (td {}, if event.compra then '(compra)' else '')
-            ) for event in state.itemData.events
-          )
-        )
-      )
-    )
-  )
-
 state = theState()
 
 # startup functions
@@ -277,9 +298,8 @@ repeat sync
 tabs =
   'Input': 'Input'
   'Dias': vrenderDias
-  'Gráficos': require './vrender-graficos.coffee'
+  'Resumo': require './vrender-resumo.coffee'
   'SearchResults': vrenderSearchResults
-  'Item': vrenderItem
 
 # run
 hg.app document.body, state, vrenderMain

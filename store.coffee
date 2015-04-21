@@ -1,4 +1,5 @@
 PouchDB = require 'pouchdb'
+Promise = require 'lie'
 PEG     = require 'pegjs'
 
 log = -> console.log arguments[0]
@@ -106,14 +107,14 @@ class Store
       data =
         name: itemName
         events: []
-        price: null
-        stock: null
+      #  price: null
+      #  stock: null
 
-      stock_c = 0
-      price_c =
-        last_compra: 0
-        proportions: []
-        raw_prices: []
+      #stock_c = 0
+      #price_c =
+      #  last_compra: 0
+      #  proportions: []
+      #  raw_prices: []
 
       for row in res.rows.reverse()
         data.events.unshift {
@@ -125,27 +126,27 @@ class Store
           compra: row.value.compra
         }
 
-        # sum or subtract stock
-        stock_c += if row.value.compra then row.value.q else -row.value.q
+      #  # sum or subtract stock
+      #  stock_c += if row.value.compra then row.value.q else -row.value.q
 
-        # bizarrely find recommended price based on past relations V/C
-        if row.value.compra
-          price_c.last_compra = row.value.p
-        else
-          price_c.raw_prices.push row.value.p
-          if price_c.last_compra isnt 0
-            rel = row.value.p/price_c.last_compra
-            price_c.proportions.push rel
+      #  # bizarrely find recommended price based on past relations V/C
+      #  if row.value.compra
+      #    price_c.last_compra = row.value.p
+      #  else
+      #    price_c.raw_prices.push row.value.p
+      #    if price_c.last_compra isnt 0
+      #      rel = row.value.p/price_c.last_compra
+      #      price_c.proportions.push rel
 
-      if stock_c >= 0
-        # stock is only valid if it is greater than zero
-        data.stock = stock_c
+      #if stock_c >= 0
+      #  # stock is only valid if it is greater than zero
+      #  data.stock = stock_c
 
-      if price_c.proportions.length > 10
-        # get the last ten and apply them to the last_compra
-        data.price = (rel*price_c.last_compra for rel in price_c.proportions.slice(-10)).reduce((a,b) -> a+b) / 10
-      else if price_c.raw_prices.length
-        data.price = price_c.raw_prices.reduce((a,b) -> a+b) / price_c.raw_prices.length
+      #if price_c.proportions.length > 10
+      #  # get the last ten and apply them to the last_compra
+      #  data.price = (rel*price_c.last_compra for rel in price_c.proportions.slice(-10)).reduce((a,b) -> a+b) / 10
+      #else if price_c.raw_prices.length
+      #  data.price = price_c.raw_prices.reduce((a,b) -> a+b) / price_c.raw_prices.length
 
       return data
     )
