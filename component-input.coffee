@@ -6,6 +6,8 @@ store            = require './store.coffee'
 CodeMirrorWidget = require './codemirror/vendasalva-widget.coffee'
 vrenderTable     = require './vrender-table.coffee'
 
+nextTick = if setImmediate then setImmediate else (fn) -> setTimeout(fn, 0)
+
 updateDay = (state, day) ->
   store.get(day).then((doc) ->
     raw = checkLocalCache state, day, doc
@@ -64,11 +66,16 @@ inputTextChanged = (state, cmData) ->
   state.usingLocalCache.set true
   state.rawInput.set rawInput
 
+  # parse asynchronously
+  nextTick ->
+    state.parsedInput.set parse rawInput
+
 Input = (options={}) ->
   state = hg.state
     usingLocalCache: hg.value false
     activeDay: hg.value date.format(new Date, 'yyyy-MM-dd')
     rawInput: hg.value ''
+    parsedInput: hg.value null
 
     channels:
       saveInputText: (state, data) ->
@@ -96,8 +103,7 @@ Input = (options={}) ->
  ul, li} = require 'virtual-elements'
 
 vrender = (state) ->
-  parsed = parse state.rawInput
-
+  parsed = state.parsedInput
   customClass = if not parsed then 'error' else if state.usingLocalCache then 'local-cache' else 'saved'
 
   (div className: 'dashboard',
