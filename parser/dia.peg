@@ -245,6 +245,8 @@ package
   / 'garrafa'i 's'i? { return 'garrafa' }
   / 'penca'i 's'i? { return 'penca' }
   / 'bandeja'i 's'i? { return 'bandeja' }
+  / 'bdj'i 's'i? { return 'bandeja' }
+  / 'bd'i 's'i? { return 'bandeja' }
   / 'bandejinha'i 's'i? { return 'bandeja' }
   / 'vidro'i 's'i? { return 'vidro' }
   / 'vdr'i 's'i? { return 'vidro' }
