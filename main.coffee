@@ -10,16 +10,6 @@ store            = require './store.coffee'
 vrenderTable     = require './vrender-table.coffee'
 Input            = require './component-input.coffee'
 
-Offline.options = {
-  checks:
-    image:
-      url: 'https://secure.gravatar.com/avatar/b760f503c84d1bf47322f401066c753f?d=blank&s=20'
-    active: 'image'
-  checkOnLoad: true
-  interceptRequests: false
-  requests: false
-}
-
 {div, span, pre, nav,
  small, i, p, a, button,
  h1, h2, h3, h4,
@@ -285,15 +275,6 @@ state = theState()
 # startup functions
 initialDay = date.format(date.parseDate(location.hash.substr(1), 'yyyy-MM-dd') or new Date, 'yyyy-MM-dd')
 state.customHandlers.setDay()(initialDay)
-
-# listeners
-Offline.on 'up', sync
-repeat = (something) ->
-  something()
-  setTimeout ->
-    repeat something
-  , 3600000
-repeat sync
 
 tabs =
   'Input': 'Input'

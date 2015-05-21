@@ -1,5 +1,5 @@
 CACHE MANIFEST
-# 2015-05-08
+# 2015-05-21
 
 CACHE:
 //maxcdn.bootstrapcdn.com/bootswatch/3.3.1/paper/bootstrap.min.css
@@ -10,7 +10,6 @@ assets/style.css
 //cdn.rawgit.com/olivernn/lunr.js/c7a85b60a741fd1f88f8f1fa4650fd9e095e2314/lunr.min.js
 //cdn.rawgit.com/MihaiValentin/lunr-languages/b5fd27386e7d094d11b35fd5d474811aba067e7a/min/lunr.stemmer.support.min.js
 //cdn.rawgit.com/MihaiValentin/lunr-languages/b5fd27386e7d094d11b35fd5d474811aba067e7a/min/lunr.pt.min.js
-//cdn.rawgit.com/HubSpot/offline/fb1586cb02054574e469c3211ae7edbb6cb70f6d/offline.min.js
 assets/app.js
 
 NETWORK:
