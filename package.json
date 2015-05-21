@@ -1,0 +1,38 @@
+{
+  "name": "vendasalva-app",
+  "version": "0.0.1",
+  "description": "",
+  "main": "main.coffee",
+  "dependencies": {
+    "brfs": "^1.2.0",
+    "browserify": "^6.2.0",
+    "chai": "^1.10.0",
+    "codemirror": "^4.8.0",
+    "coffeeify": "^0.7.0",
+    "date-extended": "^0.0.6",
+    "immupdate": "^0.1.0",
+    "less": "^1.7.5",
+    "lie": "^2.8.1",
+    "mercury": "^12.0.0",
+    "pegjs": "^0.8.0",
+    "pouchdb": "^3.0.6",
+    "reais": "^0.0.4",
+    "setimmediate": "^1.0.2",
+    "titulo": "^0.0.1",
+    "virtual-elements": "^0.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fiatjaf/vendasalva-app.git"
+  },
+  "author": "Giovanni T. Parra",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fiatjaf/vendasalva-app/issues"
+  },
+  "homepage": "https://github.com/fiatjaf/vendasalva-app"
+}

@@ -4,7 +4,7 @@ class Chart
 
 {div} = require 'virtual-elements'
 
-module.exports = (state) ->
+module.exports = (state, channels) ->
   (div {},
     '...'
   )
