@@ -5,4 +5,6 @@
 node_modules
 *.js
 *.css
-ddoc.json
+credentials.*
+.shastore
+ddoc/grammar

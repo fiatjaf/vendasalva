@@ -1,0 +1,62 @@
+parser:
+  help: embed parser in view functions
+  dependencies:
+    - parser/dia.peg
+  formula: >
+    ./node_modules/.bin/pegjs -e parser parser/dia.peg parser/parser.js;
+    coffee -c --bare ddoc/views/*/map.coffee;
+    for m in ddoc/views/*/map.js; do
+        cat $m | py -x 'x.replace("~ import parser ~", open("parser/parser.js").read())' > tmp
+        cat tmp > $m;
+        rm tmp;
+    done;
+  output:
+    - ddoc/views/countable/map.js
+    - ddoc/views/summable/map.js
+
+grammar:
+  help: saves pegjs grammar in ddoc attribute
+  dependencies:
+    - parser/dia.peg
+  formula: >
+    cp parser/dia.peg ddoc/grammar
+  output:
+    - ddoc/grammar
+
+ddoc:
+  help: compile and upload ddoc and replicate it to other dbs
+  dependencies:
+    - credentials.json
+    - ddoc/views/countable/*
+    - ddoc/views/summable/*
+    - ddoc/grammar
+  formula: >
+    DATABASE_URL=$(cat credentials.json | json couchdb_url);
+    echo $DATABASE_URL;
+    couchapp push ddoc $DATABASE_URL;
+
+app:
+  help: the javascript app
+  dependencies:
+    - package.json
+    - '*.coffee'
+  formula: >
+    ./node_modules/.bin/browserify -t coffeeify -t brfs --extension=".coffee" main.coffee > assets/app.js
+  output:
+    - assets/app.js
+
+css:
+  help: compile less to css styles
+  dependencies:
+    - style.less
+  formula: >
+    ./node_modules/.bin/lessc style.less > assets/style.css
+  output:
+    - assets/style.css
+
+s3:
+  help: uploads app to s3
+  dependencies:
+    - appcache.appcache
+  formula: >
+    s3cmd sync --acl-public --delete-removed --exclude-from .s3ignore ./ s3://vendasalva.com.br/
