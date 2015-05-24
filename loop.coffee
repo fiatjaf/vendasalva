@@ -6,7 +6,7 @@ InvalidUpdateInRender = TypedError(
   diff: null
   stringDiff: null)
 
-main = (initialState, view, handles, opts) ->
+main = (initialState, view, channels, opts) ->
   opts = opts or {}
   currentState = initialState
   create = opts.create
@@ -14,7 +14,7 @@ main = (initialState, view, handles, opts) ->
   patch = opts.patch
   redrawScheduled = false
 
-  tree = opts.initialTree or view(currentState, handles)
+  tree = opts.initialTree or view(currentState, channels)
   target = opts.target or create(tree, opts)
   inRenderingTransaction = false
   currentState = null
@@ -33,10 +33,17 @@ main = (initialState, view, handles, opts) ->
 
   redraw = ->
     redrawScheduled = false
-    if currentState == null
-      return
+    return if currentState == null
     inRenderingTransaction = true
-    newTree = view(currentState, handles)
+    try
+      newTree = view(currentState, channels)
+    catch e
+      console.error "We had a problem while rendering the tree with the following state:", currentState
+      console.debug "Aborting the render."
+      inRenderingTransaction = false
+      newTree = tree
+      console.debug e.stack
+
     if opts.createOnly
       inRenderingTransaction = false
       create newTree, opts
