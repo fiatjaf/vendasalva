@@ -2,7 +2,7 @@ date         = require 'date-extended'
 
 StateFactory = require './state-factory.coffee'
 
-module.exports = StateFactory
+module.exports = new StateFactory
   activeTab: 'Input'
   parsedData:
     vendas: []

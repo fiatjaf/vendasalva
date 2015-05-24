@@ -1,5 +1,6 @@
-hg     = require 'mercury'
 Titulo = require('titulo').toLaxTitleCase
+
+sendClick = require 'value-event/click'
 
 {div, span, pre, nav,
  small, i, p, a, button,
@@ -13,7 +14,7 @@ vrenderSearchResults = (state, channels) ->
     (li {},
       (a
         href: '#'
-        'ev-click': hg.sendClick channels.forceSearch, r.ref
+        'ev-click': sendClick channels.forceSearch, r.ref
       , r.ref)
     ) for r in state.searchResults if state.searchResults.length >= 7
     (vrenderItem state, item) for item in state.searchResults if state.searchResults.length < 7
@@ -52,7 +53,7 @@ vrenderItem = (state, itemData) ->
              (a
                href: "##{event.id}"
                value: event.id
-               'ev-click': hg.sendClick channels.goToDay, event.id
+               'ev-click': sendClick channels.goToDay, event.id
              , event.day)
             )
             (td {}, '' + event.q + ' ' + event.u)
@@ -63,3 +64,5 @@ vrenderItem = (state, itemData) ->
       )
     )
   )
+
+module.exports = vrenderSearchResults

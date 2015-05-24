@@ -2,14 +2,12 @@ PouchDB = require 'pouchdb'
 Promise = require 'lie'
 PEG     = require 'pegjs'
 
-log = -> console.log arguments[0]
-
 class Store
   constructor: (name='vendasalva') ->
     @pouch = new PouchDB(name)
 
     @changes = @pouch.changes()
-    @pouch.on('error', log)
+    @pouch.on('error', console.log.bind console)
 
     @buildParser()
     @buildItemsIndex()
@@ -18,7 +16,7 @@ class Store
     @parser = {parse: -> []}
     @get('_design/vendasalva').then((doc) =>
       @parser = PEG.buildParser doc.grammar
-    )
+    ).catch(console.log.bind console)
 
   buildItemsIndex: ->
     @itemsidx = lunr ->
@@ -27,7 +25,7 @@ class Store
       this.ref 'item'
     @listItems().then((items) =>
       @itemsidx.add({item: item}) for item in items
-    )
+    ).catch(console.log.bind console)
 
   afterSyncHook: (info) ->
     @buildParser()
@@ -37,16 +35,18 @@ class Store
     @changes.on(type, listener)
 
   get: (id) ->
-    @pouch.get(id).catch(log)
+    @pouch.get(id).catch(console.log.bind console)
 
   save: (doc) ->
-    @pouch.put(doc).catch(log)
+    @pouch.put(doc).catch(console.log.bind console)
 
   sync: (to) ->
     syncinc = @pouch.sync(to)
     syncinc.on 'complete', (info) =>
       @afterSyncHook info
-      @pouch.compact().then(-> console.log 'compacted database')
+      @pouch.compact()
+      .then(-> console.log 'compacted database')
+      .catch(console.log.bind console)
     return syncinc
 
   listDays: ->
@@ -54,7 +54,7 @@ class Store
       startkey: ['receita', null]
       endkey: ['receita', {}]
       reduce: false
-    ).catch(log).then((res) ->
+    ).then((res) ->
       makeDayFromKey = (key) ->
         (new Date key[1], key[2]-1, key[4]).toISOString().split('T')[0]
 
@@ -68,7 +68,6 @@ class Store
       # add all days after that, appear they or not in the database
       pos = 1
       loop
-
         refDay = new Date Date.parse days.slice(-1)[0].day
         refDay.setDate refDay.getDate() + 1
         refDay = refDay.toISOString().split('T')[0]
@@ -95,7 +94,7 @@ class Store
         }
 
       return days.reverse()
-    )
+    ).catch(console.log.bind console)
 
   grabItemData: (itemName) ->
     @pouch.query('vendasalva/countable',
@@ -103,7 +102,7 @@ class Store
       endkey: ['item', itemName, null]
       descending: true
       reduce: false
-    ).catch(log).then((res) ->
+    ).then((res) ->
       data =
         name: itemName
         events: []
@@ -149,7 +148,7 @@ class Store
       #  data.price = price_c.raw_prices.reduce((a,b) -> a+b) / price_c.raw_prices.length
 
       return data
-    )
+    ).then(console.log.bind console)
 
   listItems: ->
     @pouch.query('vendasalva/countable',
@@ -157,9 +156,9 @@ class Store
       endkey: ['item', {}]
       reduce: true
       group_level: 2
-    ).catch(log).then((res) ->
+    ).then((res) ->
       res.rows.map (row) -> row.key[1]
-    )
+    ).catch(console.log.bind console)
 
   receitas: (granularity, since...) ->
     group_level = {
@@ -174,9 +173,9 @@ class Store
       endkey: ['receita'].concat(since).concat {}
       reduce: true
       group_level: group_level
-    ).catch(log).then((res) ->
+    ).then((res) ->
       res.rows
-    )
+    ).catch(console.log.bind console)
 
   searchItem: (q) -> @itemsidx.search q
 

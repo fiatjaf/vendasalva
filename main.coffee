@@ -1,7 +1,11 @@
 require 'setimmediate'
 
-hg           = require 'mercury'
-date = require 'date-extended'
+Delegator  = require('./setup').Delegator
+date       = require 'date-extended'
+
+sendClick  = require 'value-event/click'
+sendSubmit = require 'value-event/submit'
+sendChange = require 'value-event/change'
 
 {div, span, pre, nav,
  small, i, p, a, button,
@@ -31,18 +35,18 @@ vrenderMain = (state, channels) ->
         (div className: 'navbar-header',
           (button
             className: 'btn btn-default'
-            'ev-click': hg.sendClick channels.handleSync
+            'ev-click': sendClick channels.handleSync
           , 'SYNC')
         )
         (div {},
           (form
-            'ev-submit': hg.sendSubmit channels.search
+            'ev-submit': sendSubmit channels.search
             className: 'navbar-form navbar-left'
           ,
             (div className: 'form-group', style: {display: 'inline'},
               (div className: 'input-group',
                 (input
-                  'ev-input': hg.sendChange channels.search
+                  'ev-input': sendChange channels.search
                   name: 'term'
                   type: 'text'
                   value: new ClickToSearchHook state.forcedSearchValue
@@ -60,21 +64,21 @@ vrenderMain = (state, channels) ->
               (a
                 href: '#'
                 value: 'Input'
-                'ev-click': hg.sendClick channels.changeTab, 'Input'
+                'ev-click': sendClick channels.changeTab, 'Input'
               , 'Lançamentos de ' + prettydate)
             )
             (li className: ('active' if state.activeTab == 'Resumo') or '',
               (a
                 href: '#'
                 value: 'Resumo'
-                'ev-click': hg.sendClick channels.changeTab, 'Resumo'
+                'ev-click': sendClick channels.changeTab, 'Resumo'
               , 'Resumo')
             )
             (li className: ('active' if state.activeTab == 'Dias') or '',
               (a
                 href: '#'
                 value: 'Dias'
-                'ev-click': hg.sendClick channels.showDaysList
+                'ev-click': sendClick channels.showDaysList
               , 'Dias')
             )
           )
@@ -101,19 +105,18 @@ tabs =
   'SearchResults': require './vrender-searchresults'
 
 # turning the handlers into dom-delegator pre-binded-with-State channels
-hg.Delegator()
 createChannel = (acc, name) ->
-  acc[name] = hg.Delegator.allocateHandle(
-    funcs[name].bind(null, State)
+  acc[name] = Delegator.allocateHandle(
+    handlers[name].bind(handlers, State)
   )
   return acc
 channels = Object.keys(handlers).reduce createChannel, {}
 
 # run
-mainloop = (require './loop')(state, vrenderMain, channels,
-  diff: hg.diff
-  create: hg.create
-  patch: hg.patch
+mainloop = (require './loop')(State.itself(), vrenderMain, channels,
+  diff: require 'virtual-dom/vtree/diff'
+  patch: require 'virtual-dom/vdom/patch'
+  create: require 'virtual-dom/vdom/create-element'
 )
 document.body.appendChild mainloop.target
 State.subscribe (state) -> mainloop.update state

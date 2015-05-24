@@ -3,8 +3,6 @@ Reais  = require 'reais'
 
 store = require './store'
 
-module.exports = parse
-
 parse = (rawInput) ->
   try
     facts = store.parseDay rawInput
@@ -129,3 +127,5 @@ parse = (rawInput) ->
   comments: comments
   caixa: caixa
   receita: receita
+
+module.exports = parse

@@ -40,8 +40,10 @@ app:
   dependencies:
     - package.json
     - '*.coffee'
+    - codemirror/*
+    - node_modules/*/package.json
   formula: >
-    ./node_modules/.bin/browserify -t coffeeify -t brfs --extension=".coffee" main.coffee > assets/app.js
+    ./node_modules/.bin/browserifyinc -t coffeeify -t brfs --extension=".coffee" main.coffee > assets/app.js
   output:
     - assets/app.js
 

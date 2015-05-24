@@ -1,5 +1,7 @@
-hg               = require 'mercury'
-Titulo           = require('titulo').toLaxTitleCase
+Titulo = require('titulo').toLaxTitleCase
+
+sendClick  = require 'value-event/click'
+sendDetail = require './detail-event'
 
 CodeMirrorWidget = require './codemirror/vendasalva-widget.coffee'
 vrenderTable     = require './vrender-table.coffee'
@@ -23,13 +25,10 @@ vrenderInput = (state, channels) ->
       (div className: 'day ' + customClass,
         (button
           className: 'btn btn-primary'
-          'ev-click': hg.sendClick channels.saveInputText
+          'ev-click': sendClick channels.saveInputText
         , 'Salvar')
         (new CodeMirrorWidget(state.input.rawInput, {
-          'ev-changes': channels.inputTextChanged
-          'ev-blur': channels.inputTextChanged
-          'ev-scroll': channels.inputTextChanged
-          'ev-focus': channels.inputTextChanged
+          'ev-change': sendDetail channels.inputTextChanged
         }))
       )
     )

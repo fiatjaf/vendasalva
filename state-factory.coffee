@@ -2,16 +2,17 @@ update = require 'immupdate'
 
 class StateFactory
   constructor: (@state) ->
-  updateSilently: ->
-    args = [@state].concat arguments
-    @state = update.apply args
+  silentlyUpdate: ->
+    u = update.bind @, @state
+    @state = u.apply @, arguments
   change: ->
-    @updateSilently.apply arguments
+    @silentlyUpdate.apply @, arguments
     @cb @state
   subscribe: (cb) -> @cb = cb
+  itself: -> @state
   get: (prop) ->
     ret = @state
-    for degree in prop.spĺit '.'
+    for degree in prop.split '.'
       ret = ret[degree]
     return ret
 

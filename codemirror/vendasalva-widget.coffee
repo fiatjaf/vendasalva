@@ -1,5 +1,7 @@
 CodeMirror = require 'codemirror'
 
+delegator = require('../setup').delegator
+
 CodeMirror.defineMode 'vendasalva', require('./mode.coffee')
 CodeMirror.defineExtension 'show-hint', require('./show-hint.js')(CodeMirror)
 class CodeMirrorWidget
@@ -27,14 +29,15 @@ class CodeMirrorWidget
           completeOnSingleClick: true
         })
 
-      # hook to cyclejs
-      for property of @properties
-        ((evHook) =>
-          evName = evHook.substr(3)
-          @cm.on evName, (cm, ev) =>
-            if evHook.substr(0, 3) == 'ev-' and typeof @properties[evHook] == 'function'
-              @properties[evHook]({cm: cm, ev: ev})
-        )(property)
+      # hooks to virtual-dom dom-delegated 'change' event
+      if 'ev-change' of @properties
+        delegator.addEventListener elem, 'change', @properties['ev-change']
+
+        for happening in ['changes', 'blur', 'scroll', 'focus']
+          @cm.on happening, (cm, ev) =>
+            event = new CustomEvent 'change', 'detail': {cm: cm, ev: ev}
+            elem.dispatchEvent event
+
     return elem
   update: (prev, elem) ->
     cm = @cm or prev.cm

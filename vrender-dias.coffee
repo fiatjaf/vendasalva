@@ -1,5 +1,6 @@
-hg    = require 'mercury'
 Reais = require 'reais'
+
+sendClick  = require 'value-event/click'
 
 {div, span, pre, nav,
  small, i, p, a, button,
@@ -21,7 +22,7 @@ vrenderDias = (state, channels) ->
         (a
           href: "##{day.day}"
           value: day.day
-          'ev-click': hg.sendClick channels.goToDay, day.day
+          'ev-click': sendClick channels.goToDay, day.day
         , "#{day.day.split('-').reverse().join('/')}")
       )
       (td {}, "R$ #{Reais.fromInteger day.receita}")
@@ -39,3 +40,4 @@ vrenderDias = (state, channels) ->
     )
   )
 
+module.exports = vrenderDias

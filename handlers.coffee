@@ -15,15 +15,16 @@ handlers =
       State.change
         daysList: daysList
         activeTab: 'Dias'
-    ).catch(console.log.bind @)
+    ).catch(console.log.bind console)
 
   goToDay: (State, data) ->
     # data is the day itself, as a string
-    @updateDay data
-    State.change 'activeTab', 'Input'
+    @updateDay(State, data).then(->
+      State.change 'activeTab', 'Input'
+    )
 
   search: (State, data) ->
-    State.updateSilently 'forcedSearchValue', ''
+    State.silentlyUpdate 'forcedSearchValue', ''
 
     results = store.searchItem data.term
     if results.length
@@ -33,7 +34,7 @@ handlers =
           State.change
             searchResults: items
             activeTab: 'SearchResults'
-        )
+        ).catch(console.log.bind console)
       else
         State.change
           searchResults: results
@@ -44,27 +45,30 @@ handlers =
   handleSync: -> if localStorage.getItem 'remoteCouch' then sync(true) else getRemoteCouch()
 
   saveInputText: (State, data) ->
-    activeDay = State.get 'activeDay'
+    activeDay = State.get 'input.activeDay'
     store.get(activeDay).then((doc) ->
       if not doc
         doc = {_id: activeDay}
-      doc.raw = State.get 'rawInput'
+      doc.raw = State.get 'input.rawInput'
       store.save(doc)
     ).then(->
       localStorage.removeItem activeDay + ':raw'
       localStorage.removeItem activeDay + ':rev_number'
-      State.silentlyUpdate 'usingLocalCache', false
-    ).catch(console.log.bind @)
+      State.change 'input.usingLocalCache', false
+    ).catch(console.log.bind console)
 
   updateDay:  (State, day) ->
+    here = @
     store.get(day).then((doc) ->
-      raw = @checkLocalCache day, doc
-
+      raw = here.checkLocalCache State, day, doc
       State.change
         input:
           rawInput: raw
           activeDay: day
-    ).catch(console.log.bind @)
+      # parse asynchronously
+      nextTick ->
+        State.change 'input.parsedInput', parse raw
+    ).catch(console.log.bind console)
 
   inputTextChanged: (State, cmData) ->
     # only react to big events (newline, big deletions, multiline pastes)
@@ -83,6 +87,9 @@ handlers =
       input:
         usingLocalCache: true
         rawInput: rawInput
+    # parse asynchronously
+    nextTick ->
+      State.change 'input.parsedInput', parse rawInput
 
   checkLocalCache: (State, day, doc) ->
     local_raw = localStorage.getItem day + ':raw'
@@ -95,33 +102,28 @@ handlers =
       # we override it if the pouchdb version is newer
       if doc and doc_rev > local_rev
         raw = doc.raw
-        State.silentlyUpdate 'usingLocalCache', false
+        State.silentlyUpdate 'input.usingLocalCache', false
         localStorage.setItem day + ':raw', ''
         localStorage.setItem day + ':rev_number', doc_rev
   
       # otherwise we keep using it
       else
-        State.silentlyUpdate 'usingLocalCache', true
+        State.silentlyUpdate 'input.usingLocalCache', true
         raw = local_raw
   
     # if we don't have any cache, use the pouchdb doc
     # and init the cache (doc_rev will be 0)
     else if doc
-      raw = doc.raw
-      State.silentlyUpdate 'usingLocalCache', false
+      raw = doc.raw or ''
+      State.silentlyUpdate 'input.usingLocalCache', false
       localStorage.setItem day + ':rev_number', doc_rev
   
     # or start a new thing
     else
       raw = ''
-      State.silentlyUpdate 'usingLocalCache', false
+      State.silentlyUpdate 'input.usingLocalCache', false
       localStorage.setItem day + ':rev_number', 0
-  
+
     return raw
-  
-    # parse asynchronously
-    nextTick ->
-      State.change
-        parsedInput: parse rawInput
 
 module.exports = handlers
