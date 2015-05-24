@@ -32,12 +32,12 @@ handlers =
         Promise.all((store.grabItemData i.ref for i in results))
         .then((items) ->
           State.change
-            searchResults: items
+            searchResults: -> items
             activeTab: 'SearchResults'
         ).catch(console.log.bind console)
       else
         State.change
-          searchResults: results
+          searchResults: -> results
           activeTab: 'SearchResults'
 
   forceSearch: (State, data) -> State.change 'forcedSearchValue', data

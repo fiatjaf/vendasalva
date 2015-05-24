@@ -148,7 +148,7 @@ class Store
       #  data.price = price_c.raw_prices.reduce((a,b) -> a+b) / price_c.raw_prices.length
 
       return data
-    ).then(console.log.bind console)
+    ).catch(console.log.bind console)
 
   listItems: ->
     @pouch.query('vendasalva/countable',

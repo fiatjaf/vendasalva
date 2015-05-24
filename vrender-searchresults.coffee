@@ -17,10 +17,10 @@ vrenderSearchResults = (state, channels) ->
         'ev-click': sendClick channels.forceSearch, r.ref
       , r.ref)
     ) for r in state.searchResults if state.searchResults.length >= 7
-    (vrenderItem state, item) for item in state.searchResults if state.searchResults.length < 7
+    (vrenderItem state, channels, item) for item in state.searchResults if state.searchResults.length < 7
   )
 
-vrenderItem = (state, itemData) ->
+vrenderItem = (state, channels, itemData) ->
   (div className: 'item',
     #(div {},
     #  (div className: 'col-md-3',
