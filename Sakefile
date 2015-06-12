@@ -1,39 +1,48 @@
-parser:
-  help: embed parser in view functions
-  dependencies:
-    - parser/dia.peg
-  formula: >
-    ./node_modules/.bin/pegjs -e parser parser/dia.peg parser/parser.js;
-    coffee -c --bare ddoc/views/*/map.coffee;
-    for m in ddoc/views/*/map.js; do
-        cat $m | py -x 'x.replace("~ import parser ~", open("parser/parser.js").read())' > tmp
-        cat tmp > $m;
-        rm tmp;
-    done;
-  output:
-    - ddoc/views/countable/map.js
-    - ddoc/views/summable/map.js
-
-grammar:
-  help: saves pegjs grammar in ddoc attribute
-  dependencies:
-    - parser/dia.peg
-  formula: >
-    cp parser/dia.peg ddoc/grammar
-  output:
-    - ddoc/grammar
-
 ddoc:
-  help: compile and upload ddoc and replicate it to other dbs
-  dependencies:
-    - credentials.json
-    - ddoc/views/countable/*
-    - ddoc/views/summable/*
-    - ddoc/grammar
-  formula: >
-    DATABASE_URL=$(cat credentials.json | json couchdb_url);
-    echo $DATABASE_URL;
-    couchapp push ddoc $DATABASE_URL;
+  help: compiles parser and ddoc and uploads to couchdb
+  parser:
+    help: compiles view function from coffee and embed parser in view functions
+    dependencies:
+      - ddoc/views/countable/*.coffee
+      - ddoc/views/summable/*.coffee
+      - parser/dia.peg
+    formula: >
+      ./node_modules/.bin/pegjs -e parser parser/dia.peg parser/parser.js;
+      coffee -c --bare ddoc/views/*/map.coffee;
+      for m in ddoc/views/*/map.js; do
+          cat $m | py -x 'x.replace("~ import parser ~", open("parser/parser.js").read())' > tmp
+          cat tmp > $m;
+          rm tmp;
+      done;
+    output:
+      - ddoc/views/countable/map.js
+      - ddoc/views/summable/map.js
+  
+  grammar:
+    help: saves pegjs grammar in ddoc attribute
+    dependencies:
+      - parser/dia.peg
+    formula: >
+      cp parser/dia.peg ddoc/grammar
+    output:
+      - ddoc/grammar
+  
+  couch:
+    help: compile and upload ddoc and replicate it to other dbs
+    dependencies:
+      - credentials.json
+      - ddoc/views/countable/*.js
+      - ddoc/views/summable/*.js
+      - ddoc/grammar
+    formula: >
+      DATABASE_URL=$(cat credentials.json | json couchdb_url);
+      echo $DATABASE_URL;
+      couchapp push ddoc $DATABASE_URL;
+      COUCHDB_URL=$(echo $DATABASE_URL | py -x '"/".join(x.split("/")[:-1])');
+      for DB in `curl $COUCHDB_URL/_all_dbs | py -x --ji '"\n".join(filter(lambda n: n.startswith("vs-"), x))'`; do
+        echo "uploading ddoc to $DB";
+        couchapp push ddoc $COUCHDB_URL/$DB;
+      done;
 
 app:
   help: the javascript app
