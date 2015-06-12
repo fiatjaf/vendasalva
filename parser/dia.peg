@@ -215,14 +215,14 @@ preco
   / v:value { return parseInt(v*100) }
 
 quant
-  = q:value _? u:unit {
+  = q:value _? u:unit '.'? {
     if (u == 'g') {
       u = 'kg'
       q = q/1000
     }
     return {u: u, q: q}
   }
-  / u:unit { return { u: u, q: 1 } }
+  / u:unit '.'? { return { u: u, q: 1 } }
   / q:value { return  { u: 'u', q: q } }
   
 quant_sep

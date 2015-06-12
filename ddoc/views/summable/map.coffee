@@ -1,4 +1,6 @@
 (doc) ->
+  if '_design/' == doc._id.slice 0, 8
+    return
 
   `
   var ~ import parser ~
@@ -16,7 +18,10 @@
     Math.ceil (((d-new Date(d.getFullYear(),0,1))/8.64e7)+1)/7
   )()
 
-  facts = parser.parse(doc.raw)
+  try
+    facts = parser.parse(doc.raw)
+  catch e
+    return
 
   receita = 0
 
@@ -24,7 +29,8 @@
     switch fact.kind
       when 'venda'
         receita += fact.value
-        emit ['item-venda', fact.item, string_day], fact.value
+        emit ['item-venda', string_day, fact.item], fact.value
+        emit ['item-venda', fact.item], fact.value
       when 'compra'
         common_costs = fact.total - sum(fact.items.map((i) -> i.value))
         proportional = common_costs / fact.total

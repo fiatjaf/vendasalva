@@ -1,4 +1,6 @@
 (doc) ->
+  if '_design/' == doc._id.slice 0, 8
+    return
 
   `
   var ~ import parser ~
@@ -16,7 +18,10 @@
     Math.ceil (((d-new Date(d.getFullYear(),0,1))/8.64e7)+1)/7
   )()
 
-  facts = parser.parse(doc.raw)
+  try
+    facts = parser.parse(doc.raw)
+  catch e
+    return
 
   receita = 0
 
