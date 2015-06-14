@@ -40,7 +40,7 @@ vrenderMain = (state, channels) ->
           (div className: 'btn-group',
             (button
               className: 'btn btn-default ' + if loggedIn then 'btn-success' else 'btn-danger'
-              'ev-click': sendClick channels.changeUser
+              'ev-click': sendClick channels.changeLocalAccount
             ,
               (i className: 'glyphicon glyphicon-ok') if loggedIn
               (i className: 'glyphicon glyphicon-minus') if not loggedIn
@@ -129,6 +129,7 @@ tabs =
   'SearchResults': require './vrender-searchresults'
 modals =
   'auth': require './vrender-modal-auth'
+  'localaccount': require './vrender-modal-localaccount'
 
 # turning the handlers into dom-delegator pre-binded-with-State channels
 createChannel = (acc, name) ->

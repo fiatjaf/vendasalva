@@ -1,4 +1,4 @@
-PouchDB = require 'pouchdb'
+window.PouchDB = PouchDB = require 'pouchdb'
 Promise = require 'lie'
 PEG     = require 'pegjs'
 
@@ -12,7 +12,8 @@ class Store
     @pouchName = name
 
   initPouch: (name) ->
-    window.PouchDB = @pouch = new PouchDB name
+    @pouch = new PouchDB name
+    @pouchName = name
 
     @changes = @pouch.changes()
     @pouch.on('error', console.log.bind console)

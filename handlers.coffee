@@ -90,7 +90,7 @@ handlers =
         .withCredentials()
         .end()
     ).then((res) ->
-      if res.body.userCtx.name
+      if res.body.userCtx.name == store.pouchName or store.pouchName == 'vendasalva'
         console.log "logged as #{res.body.userCtx.name}, will sync."
         here.sync State, true
       else
@@ -121,6 +121,13 @@ handlers =
       # userCtx.name is null when no one is logged
       State.change 'loggedAs', res.body.userCtx.name
     )
+
+  changeLocalAccount: (State, data) ->
+    if not data.pouchName
+      State.change 'modalOpened', 'localaccount'
+    else
+      store.changeLocalPouch(data.pouchName)
+      @closeModal State
 
   closeModal: (State) -> State.change 'modalOpened', null
       
