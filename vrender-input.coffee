@@ -10,15 +10,15 @@ vrenderTable     = require './vrender-table.coffee'
  table, thead, tbody, tfoot, tr, th, td,
  ul, li} = require 'virtual-elements'
 
-vrenderInput = (state, channels) ->
-  parsed = state.input.parsedInput
-  customClass = if not parsed then 'error' else if state.input.usingLocalCache then 'local-cache' else 'saved'
+vrenderInput = (inputState, channels) ->
+  parsed = inputState.parsedInput
+  customClass = if not parsed then 'error' else if inputState.usingLocalCache then 'local-cache' else 'saved'
 
   (div className: 'dashboard',
     (div className: 'full',
       (h1 {},
-        if (new Date).toISOString().split('T')[0] == state.input.activeDay then 'Hoje, ' else ''
-        state.input.activeDay.split('-').reverse().join('/')
+        if (new Date).toISOString().split('T')[0] == inputState.activeDay then 'Hoje, ' else ''
+        inputState.activeDay.split('-').reverse().join('/')
       )
     )
     (div className: 'col-md-6',
@@ -27,7 +27,7 @@ vrenderInput = (state, channels) ->
           className: 'btn btn-primary'
           'ev-click': sendClick channels.saveInputText
         , 'Salvar')
-        (new CodeMirrorWidget(state.input.rawInput, {
+        (new CodeMirrorWidget(inputState.rawInput, {
           'ev-change': sendDetail channels.inputTextChanged
         }))
       )

@@ -9,18 +9,18 @@ sendClick = require 'value-event/click'
  table, thead, tbody, tfoot, tr, th, td,
  ul, li} = require 'virtual-elements'
 
-vrenderSearchResults = (state, channels) ->
+vrenderSearchResults = (searchResultsState, channels) ->
   (ul id: 'search',
     (li {},
       (a
         href: '#'
         'ev-click': sendClick channels.forceSearch, r.ref
       , r.ref)
-    ) for r in state.searchResults if state.searchResults.length >= 7
-    (vrenderItem state, channels, item) for item in state.searchResults if state.searchResults.length < 7
+    ) for r in searchResultsState.results if searchResultsState.results.length >= 7
+    (vrenderItem searchResultsState, channels, item) for item in searchResultsState.results if searchResultsState.results.length < 7
   )
 
-vrenderItem = (state, channels, itemData) ->
+vrenderItem = (searchResultsState, channels, itemData) ->
   (div className: 'item',
     #(div {},
     #  (div className: 'col-md-3',

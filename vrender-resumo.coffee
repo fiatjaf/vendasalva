@@ -9,7 +9,7 @@ class Chart
   constructor: ->
     @type = 'Widget'
 
-module.exports = (state, channels) ->
+module.exports = (resumoState, channels) ->
   (div {},
     (div className: 'col-md-6',
       (h3 {}, "Semana #{i}")
@@ -17,7 +17,7 @@ module.exports = (state, channels) ->
         style: null
         data: week
         columns: ['Produto', 'Vendas']
-      ) for week, i in state.resumo.top.weeks
+      ) for week, i in resumoState.top.weeks
     )
     (div className: 'col-md-6',
       (h2 {}, 'Produtos com maior volume de vendas desde sempre')
@@ -26,7 +26,7 @@ module.exports = (state, channels) ->
         data: ({
           'Produto': row[0]
           'Vendas': Reais.fromInteger row[1]
-        } for row in state.resumo.top.overall)
+        } for row in resumoState.top.overall)
         columns: ['#', 'Produto', 'Vendas']
       )
     )

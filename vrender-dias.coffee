@@ -9,9 +9,9 @@ sendClick  = require 'value-event/click'
  table, thead, tbody, tfoot, tr, th, td,
  ul, li} = require 'virtual-elements'
 
-vrenderDias = (state, channels) ->
+vrenderDias = (daysState, channels) ->
   rows = []
-  for day, j in state.daysList
+  for day, j in daysState.list
     month = parseInt day.day.split('-')[1]
     monthClass = switch
       when month % 3 == 0 then 'success'

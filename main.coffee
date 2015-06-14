@@ -7,6 +7,7 @@ date       = require 'date-extended'
 sendClick  = require 'value-event/click'
 sendSubmit = require 'value-event/submit'
 sendChange = require 'value-event/change'
+Thunk      = require 'vdom-thunk'
 
 {div, span, pre, nav,
  small, i, p, a, button,
@@ -78,24 +79,24 @@ vrenderMain = (state, channels) ->
             )
           )
           (ul className: 'nav navbar-right nav-pills',
-            (li className: ('active' if state.activeTab == 'Input'),
+            (li className: ('active' if state.activeTab == 'input'),
               (a
                 href: '#'
-                value: 'Input'
-                'ev-click': sendClick channels.changeTab, 'Input'
+                value: 'input'
+                'ev-click': sendClick channels.changeTab, 'input'
               , 'Lançamentos de ' + prettydate)
             )
-            (li className: ('active' if state.activeTab == 'Resumo') or '',
+            (li className: ('active' if state.activeTab == 'resumo') or '',
               (a
                 href: '#'
-                value: 'Resumo'
+                value: 'resumo'
                 'ev-click': sendClick channels.calcResumo
               , 'Resumo')
             )
-            (li className: ('active' if state.activeTab == 'Dias') or '',
+            (li className: ('active' if state.activeTab == 'dias') or '',
               (a
                 href: '#'
-                value: 'Dias'
+                value: 'dias'
                 'ev-click': sendClick channels.showDaysList
               , 'Dias')
             )
@@ -104,7 +105,8 @@ vrenderMain = (state, channels) ->
       )
     )
     (div className: 'container', id: 'container',
-      (tabs[state.activeTab or 'Input'](state, channels))
+      # each tab gets its own self-contained state
+      (Thunk tabs[state.activeTab or 'input'], state[state.activeTab or 'input'] or state, channels)
     )
     (div
       className: 'vs-modal ' + (if state.modalOpened then 'target' else '')
@@ -123,10 +125,10 @@ handlers.updateDay State, initialDay
 handlers.checkLoginStatus State
 
 tabs =
-  'Input': require './vrender-input'
-  'Dias': require './vrender-dias'
-  'Resumo': require './vrender-resumo'
-  'SearchResults': require './vrender-searchresults'
+  'input': require './vrender-input'
+  'dias': require './vrender-dias'
+  'resumo': require './vrender-resumo'
+  'searchresults': require './vrender-searchresults'
 modals =
   'auth': require './vrender-modal-auth'
   'localaccount': require './vrender-modal-localaccount'

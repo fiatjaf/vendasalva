@@ -3,16 +3,9 @@ date         = require 'date-extended'
 StateFactory = require './state-factory.coffee'
 
 module.exports = new StateFactory
-  activeTab: 'Input'
-  parsedData:
-    vendas: []
-    compras: []
-    contas: []
-    comments: []
-    caixa: [{desc: 'Vendas', value: 0}]
-    receita: 0
-  daysList: []
-  searchResults: []
+  activeTab: 'input'
+  modalOpened: null
+  loggedAs: null
   forcedSearchValue: ''
 
   input:
@@ -26,5 +19,8 @@ module.exports = new StateFactory
       weeks: []
       overall: []
 
-  modalOpened: null
-  loggedAs: null
+  searchresults:
+    results: []
+
+  dias:
+    list: []

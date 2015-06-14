@@ -11,14 +11,13 @@ handlers =
     State.change 'activeTab', data
 
   showDaysList: (State, data) ->
-    @changeTab State, 'Dias'
+    @changeTab State, 'dias'
     store.listDays().then((daysList) ->
-      State.change
-        daysList: daysList
+      State.change 'dias.list', daysList
     ).catch(console.log.bind console)
 
   calcResumo: (State) ->
-    @changeTab State, 'Resumo'
+    @changeTab State, 'resumo'
     store.topSales().then((overall) ->
       State.change
         resumo:
@@ -29,7 +28,7 @@ handlers =
   goToDay: (State, data) ->
     # data is the day itself, as a string
     @updateDay(State, data).then(->
-      State.change 'activeTab', 'Input'
+      State.change 'activeTab', 'input'
     )
 
   search: (State, data) ->
@@ -41,13 +40,15 @@ handlers =
         Promise.all((store.grabItemData i.ref for i in results))
         .then((items) ->
           State.change
-            searchResults: -> items
-            activeTab: 'SearchResults'
+            searchresults:
+              results: -> items
+            activeTab: 'searchresults'
         ).catch(console.log.bind console)
       else
         State.change
-          searchResults: -> results
-          activeTab: 'SearchResults'
+          searchresults:
+            results: -> results
+          activeTab: 'searchresults'
 
   forceSearch: (State, data) -> State.change 'forcedSearchValue', data
 
