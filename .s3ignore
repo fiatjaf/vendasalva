@@ -13,3 +13,6 @@ node_modules/*
 ddoc
 ddoc/*
 *.md
+credentials.json
+.shastore
+browserify-cache.json

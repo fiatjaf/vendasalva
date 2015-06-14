@@ -5,7 +5,7 @@
 node_modules
 *.js
 *.css
-credentials.*
+credentials.json
 .shastore
 ddoc/grammar
 browserify-cache.json
