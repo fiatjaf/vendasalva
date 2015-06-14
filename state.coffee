@@ -21,5 +21,10 @@ module.exports = new StateFactory
     rawInput: ''
     parsedInput: null
 
+  resumo:
+    top:
+      weeks: []
+      overall: []
+
   modalOpened: null
   loggedAs: null

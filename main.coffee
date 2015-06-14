@@ -89,7 +89,7 @@ vrenderMain = (state, channels) ->
               (a
                 href: '#'
                 value: 'Resumo'
-                'ev-click': sendClick channels.changeTab, 'Resumo'
+                'ev-click': sendClick channels.calcResumo
               , 'Resumo')
             )
             (li className: ('active' if state.activeTab == 'Dias') or '',

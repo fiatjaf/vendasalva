@@ -39,7 +39,7 @@ class Store
       this.field 'item'
       this.ref 'item'
     @listItems().then((items) =>
-      @itemsidx.add({item: item}) for item in items
+      @itemsidx.add({item: item}) for item in (items or [])
     ).catch(console.log.bind console)
 
   afterSyncHook: (info) ->
@@ -190,6 +190,19 @@ class Store
       group_level: group_level
     ).then((res) ->
       res.rows
+    ).catch(console.log.bind console)
+
+  topSales: ->
+    @pouch.query('vendasalva/summable',
+      reduce: true
+      startkey: ['item-venda', null]
+      endkey: ['item-venda', {}]
+      group_level: 2
+    ).then((res) ->
+      items = []
+      for row in res.rows
+        items.push [row.key[1], row.value]
+      return items.sort((a, b) -> b[1] - a[1]).slice(0, 100)
     ).catch(console.log.bind console)
 
   searchItem: (q) -> @itemsidx.search q

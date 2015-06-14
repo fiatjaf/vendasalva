@@ -29,7 +29,6 @@
     switch fact.kind
       when 'venda'
         receita += fact.value
-        emit ['item-venda', string_day, fact.item], fact.value
         emit ['item-venda', fact.item], fact.value
       when 'compra'
         common_costs = fact.total - sum(fact.items.map((i) -> i.value))

@@ -17,6 +17,15 @@ handlers =
         activeTab: 'Dias'
     ).catch(console.log.bind console)
 
+  calcResumo: (State) ->
+    store.topSales().then((overall) ->
+      State.change
+        activeTab: 'Resumo'
+        resumo:
+          top:
+            overall: overall
+    )
+
   goToDay: (State, data) ->
     # data is the day itself, as a string
     @updateDay(State, data).then(->
