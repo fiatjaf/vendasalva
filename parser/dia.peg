@@ -37,7 +37,7 @@ block
   / _? a:any+ _? { return {kind: 'comment', note: a.join('')} }
   
 _saida_keyword = 'sa'i [ií]i 'da'i / 'retirada'i
-_conta_keyword = 'pag'i ('amento'i/'o'i)? / 'conta'i / 'boleto'i / 'fatura'i / 'taxa'i
+_conta_keyword = 'pag'i 'a'i? ('mento'i/'o'i)? / 'conta'i / 'boleto'i / 'fatura'i / 'taxa'i
 saida_conta
   = _saida_keyword _ para sep? _ c:conta { return c }
   / _saida_keyword (_ name)? _ sep? c:conta { return c }
@@ -248,6 +248,8 @@ package
   / 'bdj'i 's'i? { return 'bandeja' }
   / 'bd'i 's'i? { return 'bandeja' }
   / 'bandejinha'i 's'i? { return 'bandeja' }
+  / 'redinha'i 's'i? { return 'rede' }
+  / 'red'i 'e'i? 's'i? { return 'rede' }
   / 'vidro'i 's'i? { return 'vidro' }
   / 'vdr'i 's'i? { return 'vidro' }
   / 'vd'i 's'i? { return 'vidro' }
@@ -260,6 +262,7 @@ package
   / 'punhado'i { return 'punhado' }
   / 'ramo'i 's'i? { return 'ramo' }
   / 'pct'i 's'i? { return 'pacote' }
+  / 'pcte'i 's'i? { return 'pacote' }
   / 'pacote'i 's'i? { return 'pacote' }
   / 'saco'i 's'i? { return 'saco' }
   / 'saquinho'i 's'i? { return 'saco' }
