@@ -11,16 +11,16 @@ handlers =
     State.change 'activeTab', data
 
   showDaysList: (State, data) ->
+    @changeTab State, 'Dias'
     store.listDays().then((daysList) ->
       State.change
         daysList: daysList
-        activeTab: 'Dias'
     ).catch(console.log.bind console)
 
   calcResumo: (State) ->
+    @changeTab State, 'Resumo'
     store.topSales().then((overall) ->
       State.change
-        activeTab: 'Resumo'
         resumo:
           top:
             overall: overall
