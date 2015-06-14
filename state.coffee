@@ -20,3 +20,6 @@ module.exports = new StateFactory
     activeDay: date.format(new Date, 'yyyy-MM-dd')
     rawInput: ''
     parsedInput: null
+
+  modalOpened: null
+  loggedAs: null

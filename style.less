@@ -142,6 +142,65 @@ nav {
   .compras div { text-align: center; font-weight: bold }
 }
 
+.vs-modal {
+  & > * {
+    background: #fefefe;
+    border: #333333 solid 1px;
+    border-radius: 5px;
+    margin-left: -385px;
+    position: fixed;
+    left: 50%;
+    top: -100%;
+    z-index: 11;
+    width: 770px;
+    -webkit-transform: translate(0, -500%);
+    -ms-transform: translate(0, -500%);
+    transform: translate(0, -500%);
+    -webkit-transition: -webkit-transform 0.3s ease-out;
+    -moz-transition: -moz-transform 0.3s ease-out;
+    -o-transition: -o-transform 0.3s ease-out;
+    transition: transform 0.3s ease-out;
+
+    padding: 0.3em 1.3em 1.3em 1.3em;
+  }
+  header a {
+    float: right;
+    padding: 10px;
+    font-size: 1.7em;
+  }
+  header h4 {
+    float: left;
+    margin: 0;
+    padding: 0;
+    margin-top: 13px;
+  }
+  header + *,
+  header + * > *:first-child {
+    clear: both;
+  }
+  &.target > * {
+    -webkit-transform: translate(0, 0);
+    -ms-transform: translate(0, 0);
+    transform: translate(0, 0);
+    top: 10%;
+  }
+  
+  &:before {
+    content: "";
+    display: none;
+    background: rgba(0, 0, 0, 0.6);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+  }
+  &.target:before {
+    display: block;
+  }
+}
+
 .cm-value_sep { color: blue }
 .cm-price { color: red }
 .cm-keyword { color: orange }

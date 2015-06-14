@@ -1,6 +1,7 @@
 require 'setimmediate'
 
 Delegator  = require('./setup').Delegator
+store      = require './store'
 date       = require 'date-extended'
 
 sendClick  = require 'value-event/click'
@@ -29,14 +30,31 @@ vrenderMain = (state, channels) ->
           inputEvent = new Event 'input'
           elem.dispatchEvent inputEvent
 
+  currentPouch = store.pouchName
+  loggedIn = state.loggedAs == currentPouch
+
   (div id: 'main',
     (nav className: 'navbar navbar-default',
       (div className: 'container',
         (div className: 'navbar-header',
-          (button
-            className: 'btn btn-default'
-            'ev-click': sendClick channels.handleSync
-          , 'SYNC')
+          (div className: 'btn-group',
+            (button
+              className: 'btn btn-default ' + if loggedIn then 'btn-success' else 'btn-danger'
+              'ev-click': sendClick channels.changeUser
+            ,
+              (i className: 'glyphicon glyphicon-ok') if loggedIn
+              (i className: 'glyphicon glyphicon-minus') if not loggedIn
+              ' '
+              currentPouch or ''
+            ) if currentPouch
+            (button
+              className: 'btn btn-default ' + if loggedIn and state.syncing then 'btn-warning' else ''
+              'ev-click': sendClick channels.handleSync
+            ,
+              (i className: 'glyphicon glyphicon-resize-small') if loggedIn and state.syncing
+              if not state.syncing then 'SYNC' else ' SYNCING...'
+            )
+          )
         )
         (div {},
           (form
@@ -88,6 +106,11 @@ vrenderMain = (state, channels) ->
     (div className: 'container', id: 'container',
       (tabs[state.activeTab or 'Input'](state, channels))
     )
+    (div
+      className: 'vs-modal ' + (if state.modalOpened then 'target' else '')
+    ,
+      (modals[state.modalOpened](state, channels)) if state.modalOpened
+    )
   )
 
 # doing the thing
@@ -97,12 +120,15 @@ handlers = require './handlers'
 # startup functions
 initialDay = date.format(date.parseDate(location.hash.substr(1), 'yyyy-MM-dd') or new Date, 'yyyy-MM-dd')
 handlers.updateDay State, initialDay
+handlers.checkLoginStatus State
 
 tabs =
   'Input': require './vrender-input'
   'Dias': require './vrender-dias'
   'Resumo': require './vrender-resumo'
   'SearchResults': require './vrender-searchresults'
+modals =
+  'auth': require './vrender-modal-auth'
 
 # turning the handlers into dom-delegator pre-binded-with-State channels
 createChannel = (acc, name) ->

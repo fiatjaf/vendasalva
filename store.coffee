@@ -3,14 +3,28 @@ Promise = require 'lie'
 PEG     = require 'pegjs'
 
 class Store
-  constructor: (name='vendasalva') ->
-    @pouch = new PouchDB(name)
+  constructor: (name) ->
+    if not name
+      name = localStorage.getItem 'lastPouchUsed'
+      if not name
+        name = 'vendasalva'
+    @initPouch name
+    @pouchName = name
+
+  initPouch: (name) ->
+    window.PouchDB = @pouch = new PouchDB name
 
     @changes = @pouch.changes()
     @pouch.on('error', console.log.bind console)
 
     @buildParser()
     @buildItemsIndex()
+
+  changeLocalPouch: (name) ->
+    if @pouchName != name
+      @changes.cancel()
+      localStorage.setItem 'lastPouchUsed', name
+      @initPouch name
 
   buildParser: ->
     @parser = {parse: -> []}

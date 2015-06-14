@@ -1,9 +1,9 @@
-Promise  = require 'lie'
+Promise    = require 'lie'
+superagent = (require 'superagent-promise')(require('superagent'), Promise)
 
 store    = require './store'
 parse    = require './parse'
 nextTick = if setImmediate then setImmediate else (fn) -> setTimeout(fn, 0)
-{sync, getRemoteCouch} = require './sync'
 
 handlers =
   changeTab: (State, data) ->
@@ -42,8 +42,88 @@ handlers =
 
   forceSearch: (State, data) -> State.change 'forcedSearchValue', data
 
-  handleSync: -> if localStorage.getItem 'remoteCouch' then sync(true) else getRemoteCouch()
+  sync: (State, force=false) ->
+    lastSync = localStorage.getItem 'lastSync'
+    if force or not lastSync or parseInt(lastSync) + 3600 < parseInt(Date.now()/1000)
+      # sync once an hour
+      Promise.resolve().then(->
+      ).then((res) ->
+        logged = State.get 'loggedAs'
+        if logged
+          return logged
+        else
+          return superagent.get("https://vendasalva.smileupps.com/_session")
+            .set('Accept': 'application/json')
+            .withCredentials()
+            .end()
+          .then((res) ->
+            # userCtx.name is null when no one is logged
+            State.silentlyUpdate 'loggedAs', res.body.userCtx.name
+            return res.body.userCtx.name
+          )
+      ).then((userName) ->
+        if not userName
+          console.log 'not logged, will not sync.'
+          return
 
+        console.log 'syncing as ' + userName
+        couchURL = 'https://vendasalva.smileupps.com/vs-' + userName
+        localStorage.setItem 'lastSync', parseInt(Date.now()/1000)
+
+        store.changeLocalPouch(userName)
+        syncing = store.sync(couchURL)
+        console.log 'replication started'
+        State.change 'syncing', true
+
+        syncing.on 'change', (info) -> console.log 'change', info
+        syncing.on 'error', (info) -> console.log 'error', info
+        syncing.on 'complete', (info) ->
+          console.log 'replication complete', info
+          State.change 'syncing', false
+      ).catch(console.log.bind console)
+
+  handleSync: (State) ->
+    here = @
+    Promise.resolve().then(->
+      superagent.get("https://vendasalva.smileupps.com/_session")
+        .set('Accept': 'application/json')
+        .withCredentials()
+        .end()
+    ).then((res) ->
+      if res.body.userCtx.name
+        console.log "logged as #{res.body.userCtx.name}, will sync."
+        here.sync State, true
+      else
+        return State.change 'modalOpened', 'auth'
+    ).catch(console.log.bind console)
+
+  login: (State, data) ->
+    here = @
+    Promise.resolve().then(->
+      superagent.post("https://vendasalva.smileupps.com/_session")
+        .set('Accept': 'application/json')
+        .send(data)
+        .withCredentials()
+        .end()
+    ).then((res) ->
+      console.log "logged as #{res.body.name}"
+      State.silentlyUpdate 'loggedAs', res.body.name
+      here.sync State, true
+      here.closeModal State
+    ).catch(console.log.bind console)
+
+  checkLoginStatus: (State) ->
+    superagent.get("https://vendasalva.smileupps.com/_session")
+      .set('Accept': 'application/json')
+      .withCredentials()
+      .end()
+    .then((res) ->
+      # userCtx.name is null when no one is logged
+      State.change 'loggedAs', res.body.userCtx.name
+    )
+
+  closeModal: (State) -> State.change 'modalOpened', null
+      
   saveInputText: (State, data) ->
     activeDay = State.get 'input.activeDay'
     store.get(activeDay).then((doc) ->

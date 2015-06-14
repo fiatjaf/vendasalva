@@ -3,8 +3,8 @@ ddoc:
   parser:
     help: compiles view function from coffee and embed parser in view functions
     dependencies:
-      - ddoc/views/countable/*.coffee
-      - ddoc/views/summable/*.coffee
+      - ddoc/views/countable/map.coffee
+      - ddoc/views/summable/map.coffee
       - parser/dia.peg
     formula: >
       ./node_modules/.bin/pegjs -e parser parser/dia.peg parser/parser.js;
@@ -31,14 +31,11 @@ ddoc:
     help: compile and upload ddoc and replicate it to other dbs
     dependencies:
       - credentials.json
-      - ddoc/views/countable/*.js
-      - ddoc/views/summable/*.js
+      - ddoc/views/countable/map.js
+      - ddoc/views/summable/map.js
       - ddoc/grammar
     formula: >
-      DATABASE_URL=$(cat credentials.json | json couchdb_url);
-      echo $DATABASE_URL;
-      couchapp push ddoc $DATABASE_URL;
-      COUCHDB_URL=$(echo $DATABASE_URL | py -x '"/".join(x.split("/")[:-1])');
+      COUCHDB_URL=$(cat credentials.json | json couchdb_url);
       for DB in `curl $COUCHDB_URL/_all_dbs | py -x --ji '"\n".join(filter(lambda n: n.startswith("vs-"), x))'`; do
         echo "uploading ddoc to $DB";
         couchapp push ddoc $COUCHDB_URL/$DB;
