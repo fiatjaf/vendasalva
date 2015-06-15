@@ -35,7 +35,6 @@ class Store
     ).catch(console.log.bind console)
 
   afterSyncHook: (info) ->
-    @buildParser()
     @buildItemsIndex()
 
   on: (type, listener) ->
