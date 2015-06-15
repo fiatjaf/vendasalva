@@ -165,7 +165,7 @@ handlers =
         day = e.data[0]
         parsed = e.data[1]
         if day == State.get 'input.activeDay'
-          State.change 'input.parsedInput', parsed
+          State.change 'input.parsedInput', -> parsed
     ).catch(console.log.bind console)
 
   updateDay: (State, day) ->
