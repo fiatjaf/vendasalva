@@ -1,6 +1,5 @@
 window.PouchDB = PouchDB = require 'pouchdb'
 Promise = require 'lie'
-PEG     = require 'pegjs'
 
 class Store
   constructor: (name) ->
@@ -18,7 +17,6 @@ class Store
     @changes = @pouch.changes()
     @pouch.on('error', console.log.bind console)
 
-    @buildParser()
     @buildItemsIndex()
 
   changeLocalPouch: (name) ->
@@ -26,12 +24,6 @@ class Store
       @changes.cancel()
       localStorage.setItem 'lastPouchUsed', name
       @initPouch name
-
-  buildParser: ->
-    @parser = {parse: -> []}
-    @get('_design/vendasalva').then((doc) =>
-      @parser = PEG.buildParser doc.grammar
-    ).catch(console.log.bind console)
 
   buildItemsIndex: ->
     @itemsidx = lunr ->
@@ -206,7 +198,5 @@ class Store
     ).catch(console.log.bind console)
 
   searchItem: (q) -> @itemsidx.search q
-
-  parseDay: (s) -> @parser.parse s
 
 module.exports = new Store()

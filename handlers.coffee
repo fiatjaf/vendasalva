@@ -1,9 +1,9 @@
 Promise    = require 'lie'
+Work       = require 'webworkify'
 superagent = (require 'superagent-promise')(require('superagent'), Promise)
 
-store    = require './store'
-parse    = require './parse'
-nextTick = if setImmediate then setImmediate else (fn) -> setTimeout(fn, 0)
+store        = require './store'
+parserWorker = null
 
 handlers =
   changeTab: (State, data) ->
@@ -154,7 +154,21 @@ handlers =
       State.change 'input.usingLocalCache', false
     ).catch(console.log.bind console)
 
-  updateDay:  (State, day) ->
+  setupParserWorker: (State) ->
+    parserWorker = Work require './worker-parser'
+    Promise.resolve().then(->
+      superagent.get('/parser/dia.peg').end()
+    ).then((res) ->
+      grammar = res.text
+      parserWorker.postMessage grammar
+      parserWorker.addEventListener 'message', (e) ->
+        day = e.data[0]
+        parsed = e.data[1]
+        if day == State.get 'input.activeDay'
+          State.change 'input.parsedInput', parsed
+    ).catch(console.log.bind console)
+
+  updateDay: (State, day) ->
     here = @
     store.get(day).then((doc) ->
       raw = here.checkLocalCache State, day, doc
@@ -163,18 +177,14 @@ handlers =
           rawInput: raw
           activeDay: day
       # parse asynchronously
-      nextTick ->
-        State.change 'input.parsedInput', parse raw
+      parserWorker.postMessage [day, raw]
     ).catch(console.log.bind console)
 
   inputTextChanged: (State, cmData) ->
-    # only react to big events (newline, big deletions, multiline pastes)
-    if cmData.ev
-      ev = cmData.ev[0]
-      if ev.text.length < 2 and ev.removed.length < 2
-        return
-  
-    rawInput = cmData.cm.getValue()
+    try
+      rawInput = cmData.cm.getValue()
+    catch e
+      return
     return if rawInput == State.get 'input.rawInput'
   
     activeDay = State.get 'input.activeDay'
@@ -185,8 +195,7 @@ handlers =
         usingLocalCache: true
         rawInput: rawInput
     # parse asynchronously
-    nextTick ->
-      State.change 'input.parsedInput', parse rawInput
+    parserWorker.postMessage [activeDay, rawInput]
 
   checkLocalCache: (State, day, doc) ->
     local_raw = localStorage.getItem day + ':raw'

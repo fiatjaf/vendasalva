@@ -1,5 +1,5 @@
 CACHE MANIFEST
-# 2015-06-14
+# 2015-06-14b
 
 CACHE:
 //maxcdn.bootstrapcdn.com/bootswatch/3.3.1/paper/bootstrap.min.css
@@ -11,6 +11,7 @@ assets/style.css
 //cdn.rawgit.com/MihaiValentin/lunr-languages/b5fd27386e7d094d11b35fd5d474811aba067e7a/min/lunr.stemmer.support.min.js
 //cdn.rawgit.com/MihaiValentin/lunr-languages/b5fd27386e7d094d11b35fd5d474811aba067e7a/min/lunr.pt.min.js
 assets/app.js
+parser/dia.peg
 
 NETWORK:
 *

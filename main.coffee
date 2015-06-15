@@ -1,8 +1,7 @@
-require 'setimmediate'
-
 Delegator  = require('./setup').Delegator
 store      = require './store'
 date       = require 'date-extended'
+_          = require 'setimmediate'
 
 sendClick  = require 'value-event/click'
 sendSubmit = require 'value-event/submit'
@@ -121,8 +120,12 @@ handlers = require './handlers'
 
 # startup functions
 initialDay = date.format(date.parseDate(location.hash.substr(1), 'yyyy-MM-dd') or new Date, 'yyyy-MM-dd')
-handlers.updateDay State, initialDay
-handlers.checkLoginStatus State
+Promise.resolve().then(->
+  handlers.setupParserWorker State
+).then(->
+  handlers.updateDay         State, initialDay
+  handlers.checkLoginStatus  State
+)
 
 tabs =
   'input': require './vrender-input'

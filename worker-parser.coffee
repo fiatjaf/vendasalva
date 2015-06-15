@@ -1,11 +1,12 @@
-Titulo = require('titulo').toLaxTitleCase
-Reais  = require 'reais'
+_          = require 'setimmediate'
+Titulo     = require('titulo').toLaxTitleCase
+Reais      = require 'reais'
+PEG        = require 'pegjs'
 
-store = require './store'
-
-parse = (rawInput) ->
+dayParser = parse: -> [] # provisory
+fullParse = (rawInput) ->
   try
-    facts = store.parseDay rawInput
+    facts = dayParser.parse rawInput
   catch e
     console.log e
     return null
@@ -128,4 +129,45 @@ parse = (rawInput) ->
   caixa: caixa
   receita: receita
 
-module.exports = parse
+nextTick = if setImmediate then setImmediate else (fn) -> setTimeout(fn, 0)
+
+queue = (->
+  next = null
+  doing = null
+
+  execute = ->
+    doing = true
+    nextTick ->
+      task = next
+      next = null
+      task() if task
+      if next
+        execute()
+      else
+        doing = false
+
+  return (task) ->
+    next = task
+    if not doing
+      execute()
+  )()
+
+module.exports = (self) ->
+  setupDayParser = (e) ->
+    # will be passed the grammar
+    grammar = e.data
+    dayParser = PEG.buildParser grammar
+
+    # after receiving the grammar and building the parser,
+    # we start receiving normal "parse this please" messages
+    self.removeEventListener 'message', setupDayParser
+    self.addEventListener 'message', (e) ->
+      task = ->
+        day = e.data[0]
+        raw = e.data[1]
+        parsed = fullParse raw
+        delete parsed.caixa.addPeriod
+        self.postMessage [day, parsed]
+      queue task
+
+  self.addEventListener 'message', setupDayParser
