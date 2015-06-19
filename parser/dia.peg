@@ -178,8 +178,8 @@ _item
       return {
         item: n.name,
         note: n.note,
-        u: '-',
-        q: '?',
+        u: 'u',
+        q: 1,
         value: v
       }
     }
@@ -201,8 +201,8 @@ _item
     return {
       item: n.name,
       note: n.note,
-      u: '-',
-      q: '?',
+      u: 'u',
+      q: 1,
       value: v
     }
   }

@@ -65,8 +65,8 @@ try
   res[6].q.should.equal 2
   res[6].u.should.equal 'kg'
 
-  res[7].u.should.equal '-'
-  res[7].q.should.equal '?'
+  res[7].u.should.equal 'u'
+  res[7].q.should.equal 1
   res[7].value.should.equal 300
 
   res[8].item.should.equal 'bolo de banana'
