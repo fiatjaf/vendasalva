@@ -168,19 +168,31 @@ class Store
 
   receitas: (granularity, since...) ->
     group_level = {
-      'day': 5
-      'week': 4
-      'month': 3
-      'year': 2
+      'diária': 5
+      'semanal': 4
+      'mensal': 3
+      'anual': 2
     }[granularity]
     since = since or null
     @pouch.query('vendasalva/summable',
-      startkey: ['receita'].concat since
-      endkey: ['receita'].concat(since).concat {}
+      descending: true
+      endkey: ['receita'].concat since
+      startkey: ['receita'].concat(since).concat {}
       reduce: true
+      group: true
       group_level: group_level
     ).then((res) ->
-      res.rows
+      periods = []
+      for row in res.rows
+        period = switch group_level
+          when 2 then row.key[2]
+          when 3 then "#{meses[row.key[2]-1]} de #{row.key[1]}"
+          when 4 then row.key[4]
+          when 5 then "#{row.key[5]}/#{row.key[3]}/#{row.key[2]}"
+        periods.push
+          period: period
+          value: row.value
+      periods
     ).catch(console.log.bind console)
 
   topSales: ->
@@ -199,3 +211,18 @@ class Store
   searchItem: (q) -> @itemsidx.search q
 
 module.exports = new Store()
+
+meses = [
+  'Janeiro'
+  'Fevereiro'
+  'Março'
+  'Abril'
+  'Maio'
+  'Junho'
+  'Julho'
+  'Agosto'
+  'Setembro'
+  'Outubro'
+  'Novembro'
+  'Dezembro'
+]

@@ -18,6 +18,12 @@ handlers =
 
   calcResumo: (State) ->
     @changeTab State, 'resumo'
+    store.receitas('mensal').then((receitas) ->
+      State.change
+        resumo:
+          receita:
+            months: receitas
+    )
     store.topSales().then((overall) ->
       State.change
         resumo:

@@ -15,6 +15,8 @@ module.exports = new StateFactory
     parsedInput: null
 
   resumo:
+    receita:
+      months: []
     top:
       weeks: []
       overall: []
