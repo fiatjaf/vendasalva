@@ -21,7 +21,7 @@
     "raf": "^2.0.4",
     "reais": "^0.0.4",
     "setimmediate": "^1.0.2",
-    "superagent": "^1.2.0",
+    "superagent": "^5.1.0",
     "superagent-promise": "^1.0.0",
     "titulo": "^0.0.1",
     "value-event": "^5.1.0",
